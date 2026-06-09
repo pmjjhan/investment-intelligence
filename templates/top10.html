@@ -63,7 +63,7 @@
     font-size: 12px;
     color: var(--text-primary);
   }
-  .cameron-badge {
+  .conviction-badge {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -220,7 +220,7 @@
               style="cursor:pointer;"
               data-sector="{{ stock.thesis_tag | default('Other') }}"
               data-held="{{ 'true' if stock.held else 'false' }}">
-            <td data-label="#" class="rank-num">{{ stock.rank }}</td>
+            <td data-label="#" class="rank-num">{{ stock.current_rank | default(stock.rank) | default(loop.index) }}</td>
             <td data-label="Ticker">
               <div class="ticker-cell">
                 <span class="ticker-sym">{{ stock.ticker }}</span>
@@ -238,8 +238,8 @@
               ${{ "%.2f" | format(stock.price | float) }}
             </td>
             <td data-label="Cameron Score">
-              {% set cs = stock.cameron_score | int %}
-              <span class="cameron-badge {% if cs == 5 %}cam-5{% elif cs == 4 %}cam-4{% elif cs == 3 %}cam-3{% else %}cam-low{% endif %}">
+              {% set cs = (stock.conviction_score | default(stock.cameron_score) | default(0)) | int %}
+              <span class="conviction-badge {% if cs == 5 %}cam-5{% elif cs == 4 %}cam-4{% elif cs == 3 %}cam-3{% else %}cam-low{% endif %}">
                 {{ cs }}/5
               </span>
             </td>
@@ -254,7 +254,7 @@
               {% endif %}
             </td>
             <td data-label="Action">
-              {% set action = stock.action | upper %}
+              {% set action = (stock.action | default('WATCH')) | upper %}
               {% if action == "STRONG BUY" %}
                 <span class="action-badge action-strong-buy">Strong Buy</span>
               {% elif action == "ADD" %}

@@ -252,14 +252,14 @@
             Entry Quality: {{ trade.entry_quality | title }}
           </span>
           {% endif %}
-          {% if trade.cameron_at_entry and trade.cameron_at_entry.score is defined %}
+          {% if trade.conviction_at_entry and trade.conviction_at_entry.score is defined %}
           <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">
-            Cameron at Entry:
-            <span style="color:{% if trade.cameron_at_entry.score >= 4 %}var(--green){% elif trade.cameron_at_entry.score == 3 %}var(--amber){% else %}var(--red){% endif %}">
-              {{ trade.cameron_at_entry.score }}/5
+            Conviction at Entry:
+            <span style="color:{% if trade.conviction_at_entry.score >= 4 %}var(--green){% elif trade.conviction_at_entry.score == 3 %}var(--amber){% else %}var(--red){% endif %}">
+              {{ trade.conviction_at_entry.score }}/5
             </span>
-            {% if trade.cameron_at_entry.valuation_passed is defined %}
-              &middot; Valuation {{ 'passed' if trade.cameron_at_entry.valuation_passed else 'failed' }}
+            {% if trade.conviction_at_entry.valuation_passed is defined %}
+              &middot; Valuation {{ 'passed' if trade.conviction_at_entry.valuation_passed else 'failed' }}
             {% endif %}
           </span>
           {% endif %}
