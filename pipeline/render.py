@@ -20,7 +20,9 @@ from pathlib import Path
 from typing import Any
 
 import anthropic
+import requests
 import yfinance as yf
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # ---------------------------------------------------------------------------
@@ -44,13 +46,74 @@ DIST_STOCK    = DIST_DIR / "stock"
 ARCHIVE_DIR   = DIST_DIR / "archive"
 HISTORY_FILE  = DATA_DIR / "historical_metrics.json"
 
-# Load tickers from portfolio config, fallback to CLAUDE.md defaults
+# Portfolio holdings - used to mark stocks as "held"
 PORTFOLIO_TICKERS = [
     "MSFT", "GOOGL", "AVGO", "WMT", "TSM", "META",
     "CRM", "AMZN", "AXP", "VGT", "QQQM",
 ]
-WATCHLIST_TICKERS = ["NOW", "ADBE", "CRWD", "PLTR", "ARM", "APP", "DDOG"]
-ALL_TICKERS = PORTFOLIO_TICKERS + WATCHLIST_TICKERS
+
+# How many top-ranked stocks get a full Claude memo (controls API cost)
+MEMO_TOP_N = 25
+
+# Fetch S&P 500 tickers dynamically from Wikipedia
+def _fetch_sp500_tickers() -> list[str]:
+    """Fetches current S&P 500 constituents from Wikipedia."""
+    try:
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+        # Parse the first table on the page
+        from html.parser import HTMLParser
+        tickers = []
+        class _Parser(HTMLParser):
+            _in_first_table = False
+            _in_tbody = False
+            _in_td = False
+            _col = 0
+            _cur_row = 0
+            def handle_starttag(self, tag, attrs):
+                attrs_d = dict(attrs)
+                if tag == "table" and "wikitable" in attrs_d.get("class", ""):
+                    self._in_first_table = True
+                if self._in_first_table and tag == "tbody":
+                    self._in_tbody = True
+                if self._in_tbody and tag == "tr":
+                    self._col = 0
+                    self._cur_row += 1
+                if self._in_tbody and tag == "td":
+                    self._in_td = True
+            def handle_endtag(self, tag):
+                if tag == "td":
+                    self._in_td = False
+                    self._col += 1
+                if tag == "table":
+                    self._in_first_table = False
+            def handle_data(self, data):
+                if self._in_first_table and self._in_td and self._col == 0:
+                    t = data.strip().replace(".", "-")
+                    if t:
+                        tickers.append(t)
+        p = _Parser()
+        p.feed(resp.text)
+        if len(tickers) > 400:
+            log.info("Fetched %d S&P 500 tickers from Wikipedia", len(tickers))
+            return tickers
+        raise ValueError(f"Only got {len(tickers)} tickers - parse may have failed")
+    except Exception as exc:
+        log.warning("S&P 500 fetch failed (%s) - falling back to hardcoded list", exc)
+        return _SP500_FALLBACK
+
+# Fallback hardcoded list (top 50 by market cap) used if Wikipedia fetch fails
+_SP500_FALLBACK = [
+    "AAPL","MSFT","NVDA","AMZN","GOOGL","META","TSLA","AVGO","TSM","WMT",
+    "JPM","LLY","V","UNH","XOM","ORCL","MA","COST","HD","PG",
+    "JNJ","ABBV","BAC","KO","MRK","CVX","CRM","NFLX","AMD","PEP",
+    "TMO","ACN","ADBE","LIN","MCD","ABT","CSCO","WFC","TXN","PM",
+    "QCOM","IBM","CAT","GE","INTU","ISRG","VZ","SPGI","NOW","AXP",
+    "PLTR","CRWD","ARM","APP","DDOG","SHOP","SNOW","PANW","UBER","COIN",
+]
+
+ALL_TICKERS: list[str] = []  # populated at pipeline start via _fetch_sp500_tickers()
 
 # ---------------------------------------------------------------------------
 # Directory setup
@@ -149,62 +212,69 @@ def calculate_conviction_score(metrics: dict) -> int:
         return 50
 
 
+def _fetch_single(ticker: str) -> dict | None:
+    """Fetch and score metrics for one ticker. Returns None on failure."""
+    try:
+        info = yf.Ticker(ticker).info
+
+        fcf        = _safe_float(info.get("freeCashflow"), 1)
+        market_cap = _safe_float(info.get("marketCap"), 1)
+        fcf_yield  = round((fcf / market_cap) * 100, 2) if market_cap else 0.0
+
+        sbc     = _safe_float(info.get("shareBasedCompensation"))
+        ocf     = _safe_float(info.get("operatingCashflow"), 1)
+        sbc_pct = round((sbc / ocf) * 100, 1) if ocf else 0.0
+
+        fcf_raw           = _safe_float(info.get("freeCashflow"))
+        fcf_after_sbc     = fcf_raw - sbc
+        fcf_after_sbc_m   = round(fcf_after_sbc / 1e6, 1)
+        fcf_yield_sbc_adj = round((fcf_after_sbc / market_cap) * 100, 2) if market_cap else 0.0
+
+        metrics = {
+            "ticker":             ticker,
+            "name":               info.get("longName", ticker),
+            "price":              round(_safe_float(info.get("currentPrice")), 2),
+            "pe_ratio":           round(_safe_float(info.get("trailingPE"), 30.0), 1),
+            "peg_ratio":          round(_safe_float(info.get("pegRatio"), 1.5), 2),
+            "operating_margin":   round(_safe_float(info.get("operatingMargins", 0.0)) * 100, 1),
+            "fcf_yield":          fcf_yield,
+            "fcf_yield_sbc_adj":  fcf_yield_sbc_adj,
+            "fcf_after_sbc_m":    fcf_after_sbc_m,
+            "sbc_pct_of_ocf":     sbc_pct,
+            "_fcf_raw":           fcf_raw,
+            "_fcf_after_sbc":     fcf_after_sbc,
+            "_market_cap":        market_cap,
+            "_shares":            _safe_float(info.get("sharesOutstanding")),
+            "_sbc":               sbc,
+            "held":               ticker in PORTFOLIO_TICKERS,
+        }
+        metrics["conviction_score"] = calculate_conviction_score(metrics)
+        log.info("Fetched %-6s  score=%d  price=$%.2f", ticker, metrics["conviction_score"], metrics["price"])
+        return metrics
+
+    except Exception as exc:
+        log.warning("Failed to fetch %s: %s", ticker, exc)
+        return None
+
+
 def fetch_and_calculate_metrics() -> list[dict]:
     """
-    Pulls live financial metrics from yfinance for all tickers.
+    Pulls live financial metrics from yfinance for all S&P 500 tickers in parallel.
     Returns list of metric dicts ready for scoring and rendering.
     """
     compiled: list[dict] = []
 
-    for ticker in ALL_TICKERS:
-        try:
-            info = yf.Ticker(ticker).info
-
-            # FCF yield: freeCashflow / marketCap
-            fcf        = _safe_float(info.get("freeCashflow"), 1)
-            market_cap = _safe_float(info.get("marketCap"), 1)
-            fcf_yield  = round((fcf / market_cap) * 100, 2) if market_cap else 0.0
-
-            # SBC as % of operating cash flow (correct formula)
-            sbc      = _safe_float(info.get("shareBasedCompensation"))
-            ocf      = _safe_float(info.get("operatingCashflow"), 1)
-            sbc_pct  = round((sbc / ocf) * 100, 1) if ocf else 0.0
-
-            # SBC-adjusted FCF
-            fcf_raw         = _safe_float(info.get("freeCashflow"))
-            fcf_after_sbc   = fcf_raw - sbc
-            fcf_after_sbc_m = round(fcf_after_sbc / 1e6, 1)
-            fcf_yield_sbc_adj = round((fcf_after_sbc / market_cap) * 100, 2) if market_cap else 0.0
-
-            metrics = {
-                "ticker":             ticker,
-                "name":               info.get("longName", ticker),
-                "price":              round(_safe_float(info.get("currentPrice")), 2),
-                "pe_ratio":           round(_safe_float(info.get("trailingPE"), 30.0), 1),
-                "peg_ratio":          round(_safe_float(info.get("pegRatio"), 1.5), 2),
-                "operating_margin":   round(_safe_float(info.get("operatingMargins", 0.0)) * 100, 1),
-                "fcf_yield":          fcf_yield,           # raw FCF yield (backward compat)
-                "fcf_yield_sbc_adj":  fcf_yield_sbc_adj,   # after SBC drag
-                "fcf_after_sbc_m":    fcf_after_sbc_m,     # FCF after SBC in $M
-                "sbc_pct_of_ocf":     sbc_pct,
-                # store raw values for DCF / sensitivity functions
-                "_fcf_raw":           fcf_raw,
-                "_fcf_after_sbc":     fcf_after_sbc,
-                "_market_cap":        market_cap,
-                "_shares":            _safe_float(info.get("sharesOutstanding")),
-                "_sbc":               sbc,
-                "held":               ticker in PORTFOLIO_TICKERS,
-            }
-            metrics["conviction_score"] = calculate_conviction_score(metrics)
-            compiled.append(metrics)
-            log.info("Fetched %-6s  score=%d  price=$%.2f", ticker, metrics["conviction_score"], metrics["price"])
-
-        except Exception as exc:
-            log.error("Failed to fetch %s: %s", ticker, exc)
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(_fetch_single, t): t for t in ALL_TICKERS}
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                compiled.append(result)
 
     if not compiled:
         raise ValueError("No metrics fetched - check network or ticker list")
 
+    log.info("Successfully fetched %d / %d tickers", len(compiled), len(ALL_TICKERS))
     return compiled
 
 
@@ -636,6 +706,8 @@ def run_pipeline() -> None:
     archive_previous_run()
 
     # Step 2: Fetch live metrics
+    global ALL_TICKERS
+    ALL_TICKERS = _fetch_sp500_tickers()
     log.info("Fetching yfinance metrics for %d tickers...", len(ALL_TICKERS))
     metrics_data = fetch_and_calculate_metrics()
 
@@ -644,10 +716,15 @@ def run_pipeline() -> None:
     log.info("Ranked %d stocks. Top: %s (score=%d)",
              len(ranked_data), ranked_data[0]["ticker"], ranked_data[0]["conviction_score"])
 
-    # Step 4: Claude memo per stock
-    log.info("Generating Claude memos for %d stocks...", len(ranked_data))
-    for stock in ranked_data:
+    # Step 4: Claude memo - top 25 only (controls API cost)
+    memo_candidates = [s for s in ranked_data if s.get("current_rank", 999) <= MEMO_TOP_N]
+    log.info("Generating Claude memos for top %d stocks...", len(memo_candidates))
+    for stock in memo_candidates:
         stock["memo_html"] = generate_investment_memo(stock)
+    # remaining stocks get no memo
+    for stock in ranked_data:
+        if "memo_html" not in stock:
+            stock["memo_html"] = ""
 
     # Step 4b: DCF, historical financials, sensitivity analysis
     log.info("Running DCF, historical financials, and sensitivity for %d stocks...", len(ranked_data))
