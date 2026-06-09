@@ -643,9 +643,9 @@ def render_all_pages(
     }):
         errors.append("index.html")
 
-    # top10.html - conviction matrix with rank movements + archive tabs
+    # top10.html - conviction matrix with rank movements + archive tabs (top 100)
     if not _render_page(env, "top10.html", DIST_DIR / "top10.html", {
-        "stocks": ranked_data,
+        "stocks": ranked_data[:100],
         "archive_dates": archive_dates,
         "generated_at": today_str,
     }):
