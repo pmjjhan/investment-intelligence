@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thesis Intelligence Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 12px; }
+    .card-dark { background: #12151f; border: 1px solid #252840; border-radius: 12px; }
+    .badge-early    { background: #1a3a2a; color: #4ade80; border: 1px solid #166534; }
+    .badge-emerging { background: #3a2a10; color: #fb923c; border: 1px solid #9a3412; }
+    .badge-consensus{ background: #3a1a1a; color: #f87171; border: 1px solid #991b1b; }
+    .ticker { background: #1e2235; color: #818cf8; border: 1px solid #3730a3; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+    .ticker-red { background: #2a1a1e; color: #f87171; border: 1px solid #991b1b; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+    .ticker-gap { background: #1a2535; color: #38bdf8; border: 1px solid #0369a1; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+    .score-ring { width: 120px; height: 120px; }
+    .divider { border-color: #2d3148; }
+    .source-tag { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 6px; padding: 2px 10px; font-size: 11px; color: #94a3b8; }
+    details > summary { cursor: pointer; list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    details[open] .chevron { transform: rotate(180deg); }
+    .chevron { transition: transform 0.2s; display: inline-block; }
+    .action-card { background: linear-gradient(135deg, #1a2535 0%, #1a1d2e 100%); border: 1px solid #0369a1; }
+    .score-high { color: #4ade80; }
+    .score-mid  { color: #fb923c; }
+    .score-low  { color: #f87171; }
+    .progress-bar { height: 6px; border-radius: 3px; background: #2d3148; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #6366f1, #38bdf8); }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+
+  <!-- HEADER -->
+  <div class="max-w-6xl mx-auto">
+    <div class="flex items-start justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-white tracking-tight">Thesis Intelligence</h1>
+        <p class="text-slate-400 text-sm mt-1">Investment framework signals before mainstream distribution</p>
+      </div>
+      <div class="text-right">
+        <div class="text-xs text-slate-500">Last run</div>
+        <div class="text-sm text-slate-300 font-medium">May 29, 2026 — 07:00 PT</div>
+        <div class="text-xs text-slate-500 mt-1">10 sources &nbsp;·&nbsp; 30-day window</div>
+      </div>
+    </div>
+
+    <!-- TOP ROW: Score + Action -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+      <!-- Alignment Score -->
+      <div class="card p-6 flex flex-col items-center justify-center">
+        <div class="text-xs text-slate-400 uppercase tracking-widest mb-3">Portfolio Alignment</div>
+        <div class="text-6xl font-bold score-high mb-1">72</div>
+        <div class="text-slate-400 text-sm mb-4">out of 100</div>
+        <div class="progress-bar w-full mb-3">
+          <div class="progress-fill" style="width:72%"></div>
+        </div>
+        <p class="text-xs text-slate-400 text-center leading-relaxed">
+          Strong on infrastructure and distribution incumbents. Gap: no pure-play Systems of Action (NOW) or Agent Security exposure.
+        </p>
+      </div>
+
+      <!-- Most Actionable Move -->
+      <div class="md:col-span-2 action-card p-6 flex flex-col justify-between">
+        <div class="text-xs text-sky-400 uppercase tracking-widest mb-2">Most Actionable Move This Week</div>
+        <div>
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-2xl font-bold text-white">Build NOW position</span>
+            <span class="ticker-gap">NOW</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-3">
+            <span class="text-xs text-slate-500">Current holdings:</span>
+            <span class="ticker">MSFT</span><span class="ticker">GOOGL</span><span class="ticker">AVGO</span>
+            <span class="ticker">WMT</span><span class="ticker">TSM</span><span class="ticker">CRM</span>
+            <span class="ticker">VOO</span><span class="ticker">META</span>
+            <span class="ticker">Samsung <span class="text-slate-500 font-normal">005930</span></span>
+            <span class="ticker">ZBGRIT</span><span class="ticker">WMU60</span>
+          </div>
+          <p class="text-slate-300 text-sm leading-relaxed mb-4">
+            ServiceNow is the clearest pure-play on the <strong class="text-white">Systems of Record → Systems of Action</strong> thesis — the single most consistent framework surfaced across BVP, Goldman Sachs, and a16z this month. NOW already has 85% Fortune 500 penetration, meaning the distribution moat exists. Every source this week identifies enterprise workflow automation as where durable AI margins will concentrate. It's on your watchlist. The thesis has arrived; the position hasn't.
+          </p>
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span class="source-tag">BVP Atlas</span>
+            <span class="source-tag">Goldman Sachs</span>
+            <span class="source-tag">a16z</span>
+            <span class="source-tag">Coatue 2026</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS ROW -->
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+      <div class="card p-3 text-center">
+        <div class="text-xl font-bold text-white">8</div>
+        <div class="text-xs text-slate-400 mt-0.5">Theses found</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-xl font-bold text-green-400">3</div>
+        <div class="text-xs text-slate-400 mt-0.5">Early signal</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-xl font-bold text-orange-400">3</div>
+        <div class="text-xs text-slate-400 mt-0.5">Emerging</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-xl font-bold text-red-400">2</div>
+        <div class="text-xs text-slate-400 mt-0.5">Consensus</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-xl font-bold text-sky-400">3</div>
+        <div class="text-xs text-slate-400 mt-0.5">Portfolio gaps</div>
+      </div>
+      <div class="card p-3 text-center">
+        <div class="text-xl font-bold text-slate-300">10</div>
+        <div class="text-xs text-slate-400 mt-0.5">Sources scanned</div>
+      </div>
+    </div>
+
+    <!-- THESES -->
+    <h2 class="text-base font-semibold text-slate-200 mb-3 uppercase tracking-widest text-xs">Theses Surfaced This Month</h2>
+
+    <div class="space-y-3 mb-8">
+
+      <!-- Thesis 1 -->
+      <details class="card" open>
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-emerging text-xs font-semibold px-2.5 py-1 rounded-full">EMERGING</span>
+              <span class="text-white font-semibold">Systems of Record → Systems of Action</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">BVP Atlas</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            AI agents are actively dismantling the $400B systems of record market — not by out-featuring incumbents, but by eliminating the switching cost equation entirely. Foundation models can now automate data migration and workflow generation, reducing what once took 18-month implementation cycles to weeks. AI-native entrants deliver "10x better experiences" while simultaneously capturing the professional services budget previously spent on customization.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">CRM</span>
+                <span class="ticker">MSFT</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Salesforce Agentforce + MSFT Copilot are the two largest Systems of Action deployments in enterprise today.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Threatens</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">WMT</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">WMT is not positioned in this thesis. Not a systems of action play.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">NOW</span>
+                <span class="ticker-gap">WDAY</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">ServiceNow is the clearest pure-play. Workday for HR workflows.</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> Believe that enterprise workflow migration costs have dropped below the 30% threshold where inertia historically protected incumbents, and that AI-native workflow tools now have enterprise-grade compliance/security certifications.
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 2 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-emerging text-xs font-semibold px-2.5 py-1 rounded-full">EMERGING</span>
+              <span class="text-white font-semibold">Labor Budget Reframe — $4T TAM</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">Coatue 2026</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            Coatue's most structural reframe: AI software's addressable market is not the $500B IT budget — it's the $2T coding/developer spend plus $2T white-collar SG&A. This shifts software from a tooling budget line to a labor substitute. Companies priced per-task rather than per-user inherit structural switching costs through accumulated proprietary feedback data. The implication: current software valuations are dramatically understating TAM.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">MSFT</span>
+                <span class="ticker">GOOGL</span>
+                <span class="ticker">META</span>
+                <span class="ticker">CRM</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">GitHub Copilot (MSFT) is explicitly replacing developer labor. META's AI creative tools replace marketing SG&A.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Threatens</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">WMT</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Retail labor automation doesn't compound the same way as software labor substitution.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">NOW</span>
+                <span class="ticker-gap">WDAY</span>
+                <span class="ticker-gap">ORCL</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">ServiceNow (IT/HR labor), Workday (HR workflows), Oracle (back-office SG&A).</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> Believe that enterprise procurement is actively shifting AI spend from IT cost centers to HR/ops budget owners, and that consumption-based pricing contracts are reaching 15%+ of new enterprise software ACV.
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 3 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-early text-xs font-semibold px-2.5 py-1 rounded-full">EARLY SIGNAL</span>
+              <span class="text-white font-semibold">The Harness Layer as Durable Moat</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">Tomasz Tunguz</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            As frontier models commoditize, the competitive moat migrates to whoever controls the seven-layer AI harness: context + memory, tools, orchestration, state persistence, sandbox, observability, and cost optimization. When all teams access identical frontier models, "the best riders win" — differentiator shifts from model capability to orchestration quality. Inference is the largest and fastest-growing market in tech ($250B projected in 7 years), but inference itself commoditizes. The harness does not.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">MSFT</span>
+                <span class="ticker">GOOGL</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Azure AI Studio + Copilot Studio (MSFT), Vertex AI Agents (GOOGL) are the two largest enterprise harness platforms.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Threatens</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">AVGO</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">If harness layer wins over raw chip spend longer-term, pure silicon plays face margin compression as commoditization moves up stack.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">PLTR</span>
+                <span class="ticker-gap">DDOG</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Palantir (enterprise AI harness), Datadog (LLM observability layer - fastest growing product line).</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> Believe that enterprise AI deployments are moving from single-model API calls to multi-step agentic workflows at scale, requiring persistent orchestration infrastructure rather than stateless model calls.
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 4 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-consensus text-xs font-semibold px-2.5 py-1 rounded-full">CONSENSUS</span>
+              <span class="text-white font-semibold">Consumption Pricing Replaces Seat Licensing</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">Coatue</span>
+              <span class="source-tag">a16z</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            Enterprise software is repricing from per-seat to per-outcome/consumption. Consumption-based pricing represents only 3.8% of traditional SaaS spend now — meaning the transition is early despite consensus framing. Companies priced per-task inherit structural switching costs through proprietary feedback loops; incumbents defending seat-based models face compression from AI-native entrants with superior unit economics. Hybrid models (base subscription + consumption upside) becoming the dominant contract structure.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">CRM</span>
+                <span class="ticker">MSFT</span>
+                <span class="ticker">GOOGL</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Agentforce (CRM) priced per-conversation. Azure (MSFT) and GCP (GOOGL) are consumption-native.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Threatens</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">WMT</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Not applicable to WMT's retail model.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">SNOW</span>
+                <span class="ticker-gap">MDB</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Snowflake and MongoDB — consumption-native data platforms that benefit as AI workloads drive token throughput.</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> This thesis is consensus — already priced into CRM, MSFT, GOOGL. The remaining alpha is in identifying which seat-based incumbents successfully transition (winners) vs. fail to adapt (compressors).
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 5 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-consensus text-xs font-semibold px-2.5 py-1 rounded-full">CONSENSUS</span>
+              <span class="text-white font-semibold">Infrastructure Seller / Buyer Margin Disparity</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">Coatue 2026</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            Chip and hardware sellers (AVGO, NVDA, Micron) are capturing 68-83% operating margins and averaging ~107% YTD returns. Hyperscaler buyers (MSFT, GOOGL, META, AMZN) face near-term capex drag on margins despite massive AI revenue growth — averaging ~4% YTD. This disparity reflects deliberate cash-flow reallocation: application layer buyers are funding silicon sellers. Coatue's read: infrastructure outperformance is near-term; durable compounding returns to application layer once capex digestion completes.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">AVGO</span>
+                <span class="ticker">TSM</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Both are on the seller side of the disparity — capturing shortage premium with no capex drag.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Near-term headwind</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">MSFT</span>
+                <span class="ticker-red">GOOGL</span>
+                <span class="ticker-red">META</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">All three are buyers. Capex drag on near-term margins. Coatue flags this as temporary, not structural.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">NVDA</span>
+                <span class="ticker-gap">AMD</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">You have AVGO but not NVDA or AMD — other seller-side plays with similar margin profile.</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> This is consensus — already fully priced. The forward question is timing the rotation from infrastructure back to application layer. Coatue's model suggests 12-18 months remaining of infrastructure outperformance.
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 6 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-emerging text-xs font-semibold px-2.5 py-1 rounded-full">EMERGING</span>
+              <span class="text-white font-semibold">Vertical AI Eclipsing Horizontal SaaS</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">BVP Atlas</span>
+              <span class="source-tag">Lightspeed</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            Vertical AI is creating viable markets in "technophobic" verticals — healthcare, legal, construction, agriculture — previously inaccessible to horizontal SaaS because the problems were too multimodal or language-heavy. BVP's conviction: Vertical AI has potential to eclipse even the most successful legacy vertical SaaS markets. Lightspeed adds: agentic enterprise automation will unlock a 10x+ larger opportunity than RPA. BVP specifically predicts an M&A surge in 2025-2026 as enterprise giants acquire AI-native vertical players to close the capability gap.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">CRM</span>
+                <span class="ticker">MSFT</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Salesforce Industry Clouds + Agentforce vertical deployments. MSFT Copilot industry-specific SKUs.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Neutral / not positioned</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">GOOGL</span>
+                <span class="ticker-red">META</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Horizontal AI plays — don't directly benefit from vertical AI TAM expansion.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">VEEV</span>
+                <span class="ticker-gap">HIMS</span>
+                <span class="ticker-gap">QLYS</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Veeva (life sciences vertical SaaS + AI), HMS/HIMS (health AI). BVP specifically highlights healthcare AI as the largest vertical opportunity.</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> Believe that AI-native vertical entrants are reaching enterprise-grade reliability (SOC 2, HIPAA, FedRAMP) and that switching costs from legacy vertical SaaS have crossed the tipping point where AI's workflow advantage outweighs migration risk.
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 7 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-early text-xs font-semibold px-2.5 py-1 rounded-full">EARLY SIGNAL</span>
+              <span class="text-white font-semibold">Agent Security as New Enterprise Category</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">Goldman Sachs</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            As AI agents gain write-access to enterprise systems — executing code, sending emails, processing payments, accessing HR data — a new security category is emerging around agent permissions, prompt injection defense, and data governance. Goldman identifies six infrastructure layers, with Agent Security as the least crowded and fastest-forming. Non-deterministic agent behavior creates monitoring requirements that existing SIEM/SOAR tools cannot fulfill. Goldman explicitly flags this as a "new category" rather than an extension of existing security.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">MSFT</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">MSFT's Defender + Purview products are extending into agent security. First-mover in enterprise.</p>
+            </div>
+            <div>
+              <div class="text-xs text-red-400 uppercase tracking-wider mb-2">Neutral</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-red">GOOGL</span>
+                <span class="ticker-red">META</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Building agent infrastructure but not primary security layer beneficiaries.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">CRWD</span>
+                <span class="ticker-gap">PANW</span>
+                <span class="ticker-gap">S</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">CrowdStrike, Palo Alto, SentinelOne — the three most likely acquirers or organic builders of agent security tooling.</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> Believe that enterprise AI agent deployments cross the 20% adoption threshold within 18 months, triggering security procurement cycles similar to how cloud adoption triggered the CASB and CSPM categories in 2017-2019.
+          </div>
+        </div>
+      </details>
+
+      <!-- Thesis 8 -->
+      <details class="card">
+        <summary class="p-5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="badge-early text-xs font-semibold px-2.5 py-1 rounded-full">EARLY SIGNAL</span>
+              <span class="text-white font-semibold">Data Centers as Hard Tech Accelerant</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="source-tag">Not Boring</span>
+              <span class="chevron text-slate-400 text-sm">▼</span>
+            </div>
+          </div>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-800 mt-0 pt-4">
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            $750B in 2026 data center spend (growing to $1T+ in 2027) is operating as Apollo/DoD-era procurement — funding technologies before commercial viability and compressing learning curves by years. McCormick's framework: data centers are "Buyers of Capabilities" that unlock hard tech (advanced nuclear, geothermal, solid-state batteries, next-gen chips) the same way Minuteman missile contracts unlocked integrated circuits. The implication: the data center buildout creates compounding value beyond AI software — it's a hard tech venture fund at unprecedented scale.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div class="text-xs text-green-400 uppercase tracking-wider mb-2">Supports your holdings</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">AVGO</span>
+                <span class="ticker">TSM</span>
+                <span class="ticker">MSFT</span>
+                <span class="ticker">GOOGL</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">AVGO and TSM benefit from chip demand. MSFT and GOOGL are two of the three largest data center builders globally.</p>
+            </div>
+            <div>
+              <div class="text-xs text-slate-400 uppercase tracking-wider mb-2">Neutral</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker">META</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">META building data centers but not a primary beneficiary of the hard tech acceleration effect.</p>
+            </div>
+            <div>
+              <div class="text-xs text-sky-400 uppercase tracking-wider mb-2">Not in portfolio — implicated</div>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="ticker-gap">CEG</span>
+                <span class="ticker-gap">VST</span>
+                <span class="ticker-gap">ETN</span>
+              </div>
+              <p class="text-slate-400 text-xs mt-2">Constellation Energy, Vistra, Eaton — nuclear and power infrastructure companies being funded by data center procurement contracts.</p>
+            </div>
+          </div>
+          <div class="mt-4 p-3 rounded-lg bg-slate-900 text-xs text-slate-400">
+            <span class="text-slate-300 font-medium">To act on this:</span> Believe that data center energy contracts (particularly nuclear PPAs) are locking in 15-20 year revenue streams for power companies, creating utility-like cash flow with tech-level growth rates — a rare combination.
+          </div>
+        </div>
+      </details>
+
+    </div>
+
+    <!-- PORTFOLIO GAPS -->
+    <h2 class="text-xs font-semibold text-slate-200 mb-3 uppercase tracking-widest">Top 3 Portfolio Gaps</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="ticker-gap text-sm">NOW</span>
+          <span class="text-white font-semibold text-sm">ServiceNow</span>
+        </div>
+        <p class="text-slate-400 text-xs leading-relaxed mb-3">Pure-play on Systems of Record → Systems of Action. 85% Fortune 500 penetration. IT/HR/legal workflow automation — the three highest-value SoA use cases. Every source this month points here. On your watchlist; not yet held.</p>
+        <div class="flex flex-wrap gap-1">
+          <span class="source-tag">BVP Atlas</span>
+          <span class="source-tag">Goldman</span>
+          <span class="source-tag">a16z</span>
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="ticker-gap text-sm">CRWD</span>
+          <span class="text-white font-semibold text-sm">CrowdStrike</span>
+        </div>
+        <p class="text-slate-400 text-xs leading-relaxed mb-3">Best-positioned incumbent to own Agent Security as AI agents proliferate in enterprise. Goldman explicitly flags agent security as a new category requiring new tooling. CRWD is the most likely organic builder or acquirer — already has enterprise trust and distribution.</p>
+        <div class="flex flex-wrap gap-1">
+          <span class="source-tag">Goldman Sachs</span>
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="ticker-gap text-sm">VEEV</span>
+          <span class="text-white font-semibold text-sm">Veeva Systems</span>
+        </div>
+        <p class="text-slate-400 text-xs leading-relaxed mb-3">BVP explicitly highlights life sciences as the largest vertical AI TAM. Veeva is the vertical SaaS incumbent in life sciences — highest likelihood of either building AI-native workflows or being the acquisition target. Healthcare AI is your single most-referenced gap across all sources.</p>
+        <div class="flex flex-wrap gap-1">
+          <span class="source-tag">BVP Atlas</span>
+          <span class="source-tag">Lightspeed</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SOURCES -->
+    <div class="card-dark p-5">
+      <div class="text-xs text-slate-400 uppercase tracking-widest mb-3">Sources Scanned This Run</div>
+      <div class="flex flex-wrap gap-2">
+        <span class="source-tag">a16z Feed</span>
+        <span class="source-tag">Sequoia / Medium</span>
+        <span class="source-tag">Not Boring (Packy McCormick)</span>
+        <span class="source-tag">BVP Atlas</span>
+        <span class="source-tag">BVP Roadmaps</span>
+        <span class="source-tag">Coatue 2026 Market Report</span>
+        <span class="source-tag">Goldman Sachs Growth Equity</span>
+        <span class="source-tag">Goldman Sachs AI Insights</span>
+        <span class="source-tag">Lightspeed Stories</span>
+        <span class="source-tag">Tomasz Tunguz / Theory Ventures</span>
+      </div>
+      <div class="mt-3 text-xs text-slate-500">
+        Exclusion list: 0 prior theses on record (first run). All 8 theses treated as new.
+      </div>
+    </div>
+
+    <div class="mt-6 text-center text-xs text-slate-600">
+      Thesis Intelligence · Built on Claude + Exa · Next run: Sun Jun 5, 2026 07:00 PT
+    </div>
+
+  </div>
+</body>
+</html>

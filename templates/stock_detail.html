@@ -1,0 +1,809 @@
+{% extends "base.html" %}
+{% block title %}{{ stock.ticker }} Deep Dive | Investment Intelligence{% endblock %}
+
+{% block extra_style %}
+  /* ── HERO ── */
+  .hero {
+    padding: 32px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .hero-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .ticker-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+  .ticker-symbol {
+    font-family: var(--font-mono);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .ticker-name { font-size: 15px; color: var(--text-secondary); padding-top: 6px; }
+  .ticker-meta {
+    display: flex;
+    gap: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .conviction-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .conviction-score {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--green-bright);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .conviction-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .conviction-bar {
+    width: 200px;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .conviction-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--amber), var(--green));
+    border-radius: 2px;
+  }
+  .thesis-summary {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ── CHECKLIST ── */
+  .checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .check-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .check-icon { font-size: 20px; margin-bottom: 6px; }
+  .check-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .check-detail { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+  .check-pass { border-color: var(--green); }
+  .check-pass .check-icon::after { content: '✓'; color: var(--green-bright); }
+  .check-warn { border-color: var(--amber); }
+  .check-warn .check-icon::after { content: '!'; color: var(--amber-bright); }
+  .check-fail { border-color: var(--red); }
+  .check-fail .check-icon::after { content: '✗'; color: var(--red-bright); }
+
+  /* ── DCF ── */
+  .dcf-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .dcf-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .dcf-card.current { border-color: var(--blue); }
+  .dcf-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .dcf-value {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .dcf-bear .dcf-value { color: var(--red-bright); }
+  .dcf-base .dcf-value { color: var(--green-bright); }
+  .dcf-bull .dcf-value { color: var(--purple); }
+  .dcf-card.current .dcf-value { color: var(--blue); }
+  .dcf-vs {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    margin-top: 6px;
+  }
+  .upside { color: var(--green); }
+  .downside { color: var(--red); }
+
+  /* ── IRR TABLE ── */
+  .irr-target-row td { font-weight: 600; color: var(--amber-bright) !important; }
+
+  /* ── THESIS / SOURCES ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .signal-list { list-style: none; }
+  .signal-list li {
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 5px 0 5px 14px;
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .signal-list li:last-child { border-bottom: none; }
+  .signal-list.supports li::before { content: '↑'; position: absolute; left: 0; color: var(--green); }
+  .signal-list.challenges li::before { content: '↓'; position: absolute; left: 0; color: var(--red); }
+
+  /* ── SBC / FCF QUALITY ── */
+  .fcf-quality-table td { padding: 6px 12px; }
+  .fcf-quality-table td:first-child {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: 240px;
+  }
+  .fcf-quality-table td:last-child {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .fcq-green { color: var(--green-bright); }
+  .fcq-amber { color: var(--amber-bright); }
+  .fcq-red   { color: #f85149; }
+  .fcq-note {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding-left: 12px;
+    border-left: 2px solid var(--border);
+  }
+
+  /* ── DCF CALC ── */
+  .dcf-calc-iv {
+    font-family: var(--font-mono);
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .dcf-calc-mos {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .dcf-verdict-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+  .verdict-undervalued { background: #0d4429; color: #3fb950; border: 1px solid #238636; }
+  .verdict-fairly      { background: #2d2600; color: #d29922; border: 1px solid #9e6a03; }
+  .verdict-overvalued  { background: #3d0000; color: #f85149; border: 1px solid #da3633; }
+  .dcf-assump-table td {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    color: var(--text-secondary);
+  }
+  .dcf-assump-table td:first-child { color: var(--text-muted); }
+  .dcf-terminal-warn {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--amber);
+    font-style: italic;
+    padding-left: 12px;
+    border-left: 2px solid var(--amber);
+  }
+
+  /* ── HISTORICAL ONE-PAGER ── */
+  .hist-est { color: var(--text-muted); font-style: italic; }
+
+  /* ── SENSITIVITY ── */
+  .sens-table { border-collapse: collapse; width: 100%; }
+  .sens-table th {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    text-align: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+  }
+  .sens-table td {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .sens-table td.row-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-align: left;
+    background: var(--bg-secondary);
+  }
+  .sens-green { color: #3fb950; }
+  .sens-amber { color: #d29922; }
+  .sens-red   { color: #f85149; }
+  .sens-note {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ── RECOMMENDATION ── */
+  .rec-box {
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .rec-action {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .rec-rationale { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+  .rec-strong-buy { background: #1a4a1a; border: 1px solid var(--green); }
+  .rec-strong-buy .rec-action { color: var(--green-bright); }
+  .rec-add { background: var(--green-dim); border: 1px solid var(--green); }
+  .rec-add .rec-action { color: var(--green); }
+  .rec-hold { background: var(--blue-dim); border: 1px solid var(--blue); }
+  .rec-hold .rec-action { color: var(--blue); }
+  .rec-dip { background: var(--amber-dim); border: 1px solid var(--amber); }
+  .rec-dip .rec-action { color: var(--amber-bright); }
+  .rec-watch { background: var(--bg-secondary); border: 1px solid var(--border); }
+  .rec-watch .rec-action { color: var(--text-secondary); }
+
+  @media (max-width: 900px) {
+    .checklist-grid { grid-template-columns: repeat(3, 1fr); }
+    .dcf-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .checklist-grid { grid-template-columns: repeat(2, 1fr); }
+    .hero-top { flex-direction: column; }
+    .conviction-block { align-items: flex-start; }
+    .conviction-bar { width: 100%; }
+    .rec-box { flex-direction: column; }
+  }
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="ticker-main">
+          <span class="ticker-symbol">{{ stock.ticker }}</span>
+          <span class="ticker-name">{{ stock.name }}</span>
+        </div>
+        <div class="ticker-meta">
+          {% if stock.price %}
+          <span>
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;"></span>
+            ${{ "%.2f" | format(stock.price | float) }}
+          </span>
+          {% endif %}
+          {% if stock.recommendation and stock.recommendation.action %}
+          <span>{{ stock.recommendation.action }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="conviction-block">
+        <div class="conviction-score">{{ stock.conviction_score }}</div>
+        <div class="conviction-label">Conviction Score</div>
+        <div class="conviction-bar">
+          <div class="conviction-fill" style="width:{{ stock.conviction_score }}%;"></div>
+        </div>
+      </div>
+    </div>
+    {% if stock.thesis and stock.thesis.claim %}
+    <div class="thesis-summary">{{ stock.thesis.claim }}</div>
+    {% endif %}
+  </div>
+
+  <!-- 1. RATIONAL INVESTING CHECKLIST -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Rational Investing Checklist</span>
+    </div>
+    {% if stock.checklist %}
+    <div class="checklist-grid">
+      {% for key, item in stock.checklist.items() %}
+      <div class="check-item check-{{ item.status }}">
+        <div class="check-icon"></div>
+        <div class="check-label">{{ key | replace('_', ' ') | title }}</div>
+        <div class="check-detail">{{ item.detail }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">No checklist data.</p>
+    {% endif %}
+  </div>
+
+  <!-- 2. FINANCIALS ONE-PAGER -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Financial History</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Revenue $B, Margins %, FCF $B, Net Debt $B</span>
+    </div>
+    {% if stock.financials %}
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Revenue ($B)</th>
+            <th>EBITDA Margin</th>
+            <th>FCF ($B)</th>
+            <th>Net Debt ($B)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in stock.financials %}
+          <tr>
+            <td data-label="Year" style="font-family:var(--font-mono);font-weight:600;">{{ row.year }}</td>
+            <td data-label="Revenue ($B)" style="font-family:var(--font-mono);">${{ "%.1f" | format(row.revenue | float) }}</td>
+            <td data-label="EBITDA Margin" style="font-family:var(--font-mono);">
+              {% if row.ebitda_margin %}
+                {% set m = row.ebitda_margin | float %}
+                <span style="color:{% if m >= 20 %}var(--green){% elif m >= 10 %}var(--amber){% else %}var(--red){% endif %}">
+                  {{ "%.0f" | format(m) }}%
+                </span>
+              {% else %}-{% endif %}
+            </td>
+            <td data-label="FCF ($B)" style="font-family:var(--font-mono);">
+              {% if row.fcf is defined %}
+                {% set f = row.fcf | float %}
+                <span style="color:{% if f >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                  ${{ "%.1f" | format(f) }}
+                </span>
+              {% else %}-{% endif %}
+            </td>
+            <td data-label="Net Debt ($B)" style="font-family:var(--font-mono);">
+              {% if row.net_debt is defined %}
+                {% set d = row.net_debt | float %}
+                <span style="color:{% if d <= 0 %}var(--green){% else %}var(--amber){% endif %}">
+                  ${{ "%.1f" | format(d) }}
+                </span>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">No financial history available.</p>
+    {% endif %}
+  </div>
+
+  <!-- 3. DCF INTRINSIC VALUE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">DCF Intrinsic Value</span>
+    </div>
+    {% if stock.dcf %}
+    <div class="dcf-grid">
+      <div class="dcf-card dcf-bear">
+        <div class="dcf-label">Bear Case</div>
+        <div class="dcf-value">${{ stock.dcf.bear }}</div>
+        {% if stock.dcf.current and stock.dcf.bear %}
+          {% set vs = ((stock.dcf.bear - stock.dcf.current) / stock.dcf.current * 100) | round(0) | int %}
+          <div class="dcf-vs {% if vs >= 0 %}upside{% else %}downside{% endif %}">
+            {% if vs >= 0 %}+{% endif %}{{ vs }}% vs current
+          </div>
+        {% endif %}
+      </div>
+      <div class="dcf-card dcf-base">
+        <div class="dcf-label">Base Case</div>
+        <div class="dcf-value">${{ stock.dcf.base }}</div>
+        {% if stock.dcf.current and stock.dcf.base %}
+          {% set vs = ((stock.dcf.base - stock.dcf.current) / stock.dcf.current * 100) | round(0) | int %}
+          <div class="dcf-vs {% if vs >= 0 %}upside{% else %}downside{% endif %}">
+            {% if vs >= 0 %}+{% endif %}{{ vs }}% vs current
+          </div>
+        {% endif %}
+      </div>
+      <div class="dcf-card dcf-bull">
+        <div class="dcf-label">Bull Case</div>
+        <div class="dcf-value">${{ stock.dcf.bull }}</div>
+        {% if stock.dcf.current and stock.dcf.bull %}
+          {% set vs = ((stock.dcf.bull - stock.dcf.current) / stock.dcf.current * 100) | round(0) | int %}
+          <div class="dcf-vs upside">+{{ vs }}% upside</div>
+        {% endif %}
+      </div>
+      <div class="dcf-card current">
+        <div class="dcf-label">Current Price</div>
+        <div class="dcf-value">${{ stock.dcf.current }}</div>
+        <div class="dcf-vs" style="color:var(--text-muted);">market</div>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">No DCF data available.</p>
+    {% endif %}
+  </div>
+
+  <!-- 4. 1-YEAR IRR -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">1-Year IRR Scenarios</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--amber);">Target: 15%</span>
+    </div>
+    {% if stock.irr %}
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-width:480px;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Exit Price</th>
+            <th>1yr IRR</th>
+            <th>vs 15% Target</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td data-label="Scenario">Bear</td>
+            <td data-label="Exit Price" style="font-family:var(--font-mono);">-</td>
+            <td data-label="1yr IRR" style="font-family:var(--font-mono);color:var(--red-bright);">{{ stock.irr.bear }}%</td>
+            <td data-label="vs Target" style="font-family:var(--font-mono);color:var(--red-bright);">{{ (stock.irr.bear - 15) | round(0) | int }}pp</td>
+          </tr>
+          <tr>
+            <td data-label="Scenario">Base</td>
+            <td data-label="Exit Price" style="font-family:var(--font-mono);">
+              {% if stock.irr.target_exit %}${{ stock.irr.target_exit }}{% else %}-{% endif %}
+            </td>
+            <td data-label="1yr IRR" style="font-family:var(--font-mono);color:var(--green-bright);">+{{ stock.irr.base }}%</td>
+            <td data-label="vs Target" style="font-family:var(--font-mono);">
+              {% set diff = (stock.irr.base - 15) | round(0) | int %}
+              <span style="color:{% if diff >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                {% if diff >= 0 %}+{% endif %}{{ diff }}pp
+              </span>
+            </td>
+          </tr>
+          <tr class="irr-target-row">
+            <td data-label="Scenario">Bull</td>
+            <td data-label="Exit Price" style="font-family:var(--font-mono);">-</td>
+            <td data-label="1yr IRR" style="font-family:var(--font-mono);color:var(--purple);">+{{ stock.irr.bull }}%</td>
+            <td data-label="vs Target" style="font-family:var(--font-mono);color:var(--purple);">+{{ (stock.irr.bull - 15) | round(0) | int }}pp</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">No IRR data available.</p>
+    {% endif %}
+  </div>
+
+  <!-- A. SBC & FCF QUALITY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">SBC &amp; FCF Quality</span>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;max-width:520px;">
+      <table class="fcf-quality-table" style="width:100%;border-collapse:collapse;">
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td>FCF (Reported)</td>
+            <td>
+              {% if stock.fcf_yield is defined %}
+                <span>{{ stock.fcf_yield }}% yield</span>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td>SBC as % of OCF</td>
+            <td>
+              {% if stock.sbc_pct_of_ocf is defined %}
+                {% set sbc_pct = stock.sbc_pct_of_ocf | float %}
+                <span style="color:{% if sbc_pct <= 5 %}var(--green){% elif sbc_pct <= 15 %}var(--amber){% else %}var(--red){% endif %}">
+                  {{ sbc_pct }}%
+                </span>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td>FCF after SBC Drag</td>
+            <td>
+              {% if stock.fcf_yield_sbc_adj is defined %}
+                {% set adj = stock.fcf_yield_sbc_adj | float %}
+                <span class="{% if adj >= 3 %}fcq-green{% elif adj >= 1 %}fcq-amber{% else %}fcq-red{% endif %}">
+                  {{ adj }}% yield
+                </span>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="fcq-note">SBC is real dilution. FCF after SBC is the economically accurate yield - reported FCF overstates shareholder value creation.</p>
+  </div>
+
+  <!-- B. DCF INTRINSIC VALUE (CALCULATED) -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">DCF Intrinsic Value</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">10-year model, WACC 10%, terminal growth 3%</span>
+    </div>
+    {% if stock.dcf_calc and stock.dcf_calc.intrinsic_value %}
+    {% set dcf = stock.dcf_calc %}
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;">Intrinsic Value / Share</div>
+        <div class="dcf-calc-iv" style="color:{% if dcf.margin_of_safety > 0 %}var(--green-bright){% else %}var(--red-bright){% endif %}">
+          ${{ dcf.intrinsic_value }}
+        </div>
+        <div class="dcf-calc-mos" style="color:{% if dcf.margin_of_safety > 0 %}var(--green){% else %}var(--red){% endif %}">
+          {% if dcf.margin_of_safety > 0 %}+{% endif %}{{ dcf.margin_of_safety }}% margin of safety
+        </div>
+        <div>
+          <span class="dcf-verdict-badge
+            {% if dcf.dcf_verdict == 'Undervalued' %}verdict-undervalued
+            {% elif dcf.dcf_verdict == 'Overvalued' %}verdict-overvalued
+            {% else %}verdict-fairly{% endif %}">
+            {{ dcf.dcf_verdict }}
+          </span>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">Assumptions</div>
+        <table class="dcf-assump-table" style="border-collapse:collapse;">
+          <tr><td>WACC</td><td>{{ (dcf.wacc * 100) | round(0) | int }}%</td></tr>
+          <tr><td>Terminal Growth</td><td>{{ (dcf.terminal_growth * 100) | round(0) | int }}%</td></tr>
+          <tr><td>Projection</td><td>10 years</td></tr>
+          <tr><td>Terminal Value %</td><td>{{ dcf.terminal_value_pct }}%</td></tr>
+        </table>
+        {% if dcf.terminal_value_pct > 70 %}
+        <p class="dcf-terminal-warn">High terminal value dependency ({{ dcf.terminal_value_pct }}% of total). Near-term FCF assumptions drive most of the value - front-load scrutiny.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">DCF data unavailable.</p>
+    {% endif %}
+  </div>
+
+  <!-- C. 9-YEAR FINANCIAL HISTORY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <span class="section-title">9-Year Financial History</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">Actuals + 2yr forward estimates (italic)</span>
+    </div>
+    {% if stock.historical and stock.historical | length > 0 %}
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:auto;">
+      <table class="data-table" style="min-width:600px;">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Revenue ($B)</th>
+            <th>YoY %</th>
+            <th>Op Margin</th>
+            <th>FCF ($B)</th>
+            <th>FCF after SBC ($B)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(stock.historical | length) %}
+          {% set row = stock.historical[i] %}
+          {% set is_est = row.est %}
+          <tr {% if is_est %}class="hist-est"{% endif %}>
+            <td style="font-family:var(--font-mono);font-weight:600;{% if is_est %}color:var(--text-muted);{% endif %}">
+              {{ row.year }}{% if is_est %} E{% endif %}
+            </td>
+            <td style="font-family:var(--font-mono);">
+              {% if row.revenue %}${{ "%.2f" | format(row.revenue | float) }}{% else %}-{% endif %}
+            </td>
+            <td style="font-family:var(--font-mono);">
+              {% if i > 0 and stock.historical[i-1].revenue and row.revenue %}
+                {% set prev = stock.historical[i-1].revenue | float %}
+                {% set curr = row.revenue | float %}
+                {% set pct = ((curr - prev) / prev * 100) | round(0) | int %}
+                <span style="color:{% if pct >= 15 %}var(--green){% elif pct >= 5 %}var(--amber){% else %}var(--red){% endif %}">
+                  +{{ pct }}%
+                </span>
+              {% else %}-{% endif %}
+            </td>
+            <td style="font-family:var(--font-mono);">
+              {% if row.op_margin %}
+                {% set m = row.op_margin | float %}
+                <span style="color:{% if m >= 20 %}var(--green){% elif m >= 10 %}var(--amber){% else %}var(--text-muted){% endif %}">
+                  {{ "%.0f" | format(m) }}%
+                </span>
+              {% else %}-{% endif %}
+            </td>
+            <td style="font-family:var(--font-mono);">
+              {% if row.fcf is not none %}
+                <span style="color:{% if row.fcf | float >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                  ${{ "%.2f" | format(row.fcf | float) }}
+                </span>
+              {% else %}-{% endif %}
+            </td>
+            <td style="font-family:var(--font-mono);">
+              {% if row.fcf_after_sbc is not none %}
+                <span style="color:var(--text-secondary);">${{ "%.2f" | format(row.fcf_after_sbc | float) }}</span>
+              {% else %}-{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);">Historical financials unavailable.</p>
+    {% endif %}
+  </div>
+
+  <!-- D. SENSITIVITY ANALYSIS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <span class="section-title">Sensitivity Analysis</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--amber);">1-Year IRR by Exit Multiple x FCF Growth</span>
+    </div>
+    {% if stock.sensitivity and stock.sensitivity.matrix %}
+    {% set s = stock.sensitivity %}
+    <div style="overflow:auto;">
+      <table class="sens-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Exit Multiple</th>
+            {% for label in s.growth_labels %}
+            <th>{{ label }}<br><span style="font-size:9px;opacity:0.7;">{{ s.growth_rates[loop.index0] }}% FCF growth</span></th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in range(s.multiples | length) %}
+          <tr>
+            <td class="row-label">{{ s.multiples[r] }}x FCF</td>
+            {% for c in range(s.matrix[r] | length) %}
+            {% set irr = s.matrix[r][c] %}
+            <td class="{% if irr >= 15 %}sens-green{% elif irr >= 5 %}sens-amber{% else %}sens-red{% endif %}">
+              {% if irr >= 0 %}+{% endif %}{{ irr }}%
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="sens-note">15% = hurdle rate. Green cells beat target. Entry price: ${{ stock.price }}.</p>
+    {% else %}
+    <p style="color:var(--text-muted);">Sensitivity data unavailable.</p>
+    {% endif %}
+  </div>
+
+  <!-- 9. THESIS + SIGNALS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <span class="section-title">Thesis + Signal Feed</span>
+    </div>
+    {% if stock.thesis %}
+    <div class="two-col">
+      {% if stock.thesis.supports %}
+      <div class="card">
+        <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:10px;">
+          Supports Thesis
+        </div>
+        <ul class="signal-list supports">
+          {% for s in stock.thesis.supports %}
+          <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if stock.thesis.challenges %}
+      <div class="card">
+        <div style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--red);margin-bottom:10px;">
+          Challenges Thesis
+        </div>
+        <ul class="signal-list challenges">
+          {% for c in stock.thesis.challenges %}
+          <li>{{ c }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    {% if stock.thesis.sources %}
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;">
+      {% for src in stock.thesis.sources %}
+      <span style="font-family:var(--font-mono);font-size:9px;padding:2px 7px;border-radius:3px;background:var(--purple-dim);color:var(--purple);">{{ src }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- 10. RECOMMENDATION -->
+  {% if stock.recommendation %}
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <span class="section-title">Recommendation</span>
+    </div>
+    {% set action = stock.recommendation.action | upper %}
+    <div class="rec-box
+      {% if action == 'STRONG BUY' %}rec-strong-buy
+      {% elif action == 'ADD' %}rec-add
+      {% elif action == 'HOLD' %}rec-hold
+      {% elif action == 'BUY ON DIP' %}rec-dip
+      {% else %}rec-watch{% endif %}">
+      <div class="rec-action">{{ stock.recommendation.action }}</div>
+      <div class="rec-rationale">{{ stock.recommendation.rationale }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Back link -->
+  <a href="/top10.html" style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-decoration:none;">
+    ← Back to Top 10
+  </a>
+</div>
+{% endblock %}

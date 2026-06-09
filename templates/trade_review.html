@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block title %}Trade Review | Investment Intelligence{% endblock %}
+
+{% block extra_style %}
+  .page-header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .page-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .trade-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .trade-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .trade-ticker {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .trade-type {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+  .type-buy  { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .type-sell { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+  .type-trim { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+
+  .trade-return {
+    margin-left: auto;
+    text-align: right;
+  }
+  .return-pct {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .return-pos { color: var(--green-bright); }
+  .return-neg { color: var(--red-bright); }
+  .return-dollar {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .trade-body { padding: 16px 20px; }
+  .trade-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-item {}
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Benchmark table */
+  .bench-wrap {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .bench-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 8px 12px 6px;
+  }
+
+  /* Entry quality */
+  .entry-quality {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+  .eq-good    { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+  .eq-neutral { background: var(--blue-dim);  color: var(--blue);         border: 1px solid var(--blue); }
+  .eq-poor    { background: var(--red-dim);   color: var(--red-bright);   border: 1px solid var(--red); }
+
+  /* Narrative */
+  .narrative-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-top: 14px;
+  }
+  .narrative-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+
+  @media (max-width: 700px) {
+    .trade-grid { grid-template-columns: repeat(2, 1fr); }
+    .trade-header { gap: 10px; }
+    .trade-return { margin-left: 0; }
+  }
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+  <div class="page-header">
+    <div class="page-title">Trade Decision Review</div>
+    <div class="page-sub">Was it a good decision? Performance vs benchmarks and Cameron framework at entry.</div>
+  </div>
+
+  {% if trades %}
+    {% for trade in trades %}
+    <div class="trade-card">
+      <div class="trade-header">
+        <span class="trade-ticker">{{ trade.ticker }}</span>
+        <span class="trade-type type-{{ trade.type | lower }}">{{ trade.type | upper }}</span>
+        <span style="font-size:12px;color:var(--text-muted);">{{ trade.shares }} shares</span>
+
+        <div class="trade-return">
+          {% set ret = trade.return_pct | float %}
+          <div class="return-pct {% if ret >= 0 %}return-pos{% else %}return-neg{% endif %}">
+            {% if ret >= 0 %}+{% endif %}{{ "%.1f" | format(ret) }}%
+          </div>
+          {% if trade.return_dollar is defined %}
+            {% set rd = trade.return_dollar | float %}
+            <div class="return-dollar">
+              {% if rd >= 0 %}+{% endif %}${{ "{:,.0f}".format(rd) }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="trade-body">
+        <!-- Key stats -->
+        <div class="trade-grid">
+          <div class="stat-item">
+            <div class="stat-label">Avg Cost</div>
+            <div class="stat-value">${{ "%.2f" | format(trade.avg_cost | float) }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Current Price</div>
+            <div class="stat-value">${{ "%.2f" | format(trade.current_price | float) }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Shares</div>
+            <div class="stat-value">{{ trade.shares }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Total Return</div>
+            <div class="stat-value {% if trade.return_pct | float >= 0 %}return-pos{% else %}return-neg{% endif %}">
+              {% if trade.return_pct | float >= 0 %}+{% endif %}{{ "%.1f" | format(trade.return_pct | float) }}%
+            </div>
+          </div>
+        </div>
+
+        <!-- Benchmark comparison -->
+        {% if trade.benchmarks %}
+        <div class="bench-wrap">
+          <div class="bench-title">Benchmark Comparison</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Benchmark</th>
+                <th>Return</th>
+                <th>vs This Trade</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Benchmark">S&P 500</td>
+                <td data-label="Return" style="font-family:var(--font-mono);">
+                  {% if trade.benchmarks.sp500 is defined %}
+                    {{ "%.1f" | format(trade.benchmarks.sp500 | float) }}%
+                  {% else %}-{% endif %}
+                </td>
+                <td data-label="vs This Trade" style="font-family:var(--font-mono);">
+                  {% if trade.benchmarks.sp500 is defined %}
+                    {% set diff = (trade.return_pct | float) - (trade.benchmarks.sp500 | float) %}
+                    <span style="color:{% if diff >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                      {% if diff >= 0 %}+{% endif %}{{ "%.1f" | format(diff) }}pp
+                    </span>
+                  {% else %}-{% endif %}
+                </td>
+              </tr>
+              {% if trade.benchmarks.sector_etf and trade.benchmarks.sector_return is defined %}
+              <tr>
+                <td data-label="Benchmark">{{ trade.benchmarks.sector_etf }} (Sector)</td>
+                <td data-label="Return" style="font-family:var(--font-mono);">
+                  {{ "%.1f" | format(trade.benchmarks.sector_return | float) }}%
+                </td>
+                <td data-label="vs This Trade" style="font-family:var(--font-mono);">
+                  {% set diff = (trade.return_pct | float) - (trade.benchmarks.sector_return | float) %}
+                  <span style="color:{% if diff >= 0 %}var(--green){% else %}var(--red){% endif %}">
+                    {% if diff >= 0 %}+{% endif %}{{ "%.1f" | format(diff) }}pp
+                  </span>
+                </td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+
+        <!-- Entry quality + Cameron at entry -->
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          {% if trade.entry_quality %}
+          <span class="entry-quality eq-{{ trade.entry_quality | lower }}">
+            Entry Quality: {{ trade.entry_quality | title }}
+          </span>
+          {% endif %}
+          {% if trade.cameron_at_entry and trade.cameron_at_entry.score is defined %}
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">
+            Cameron at Entry:
+            <span style="color:{% if trade.cameron_at_entry.score >= 4 %}var(--green){% elif trade.cameron_at_entry.score == 3 %}var(--amber){% else %}var(--red){% endif %}">
+              {{ trade.cameron_at_entry.score }}/5
+            </span>
+            {% if trade.cameron_at_entry.valuation_passed is defined %}
+              &middot; Valuation {{ 'passed' if trade.cameron_at_entry.valuation_passed else 'failed' }}
+            {% endif %}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Claude narrative -->
+        {% if trade.narrative %}
+        <div class="narrative-box">
+          <div class="narrative-label">Claude's Assessment</div>
+          {{ trade.narrative }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:40px;text-align:center;color:var(--text-muted);">
+      No trade reviews available. Run the pipeline to generate trade_review.json.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

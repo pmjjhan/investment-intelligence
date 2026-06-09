@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holdings Deep Dive — CRM · AMZN · TSM</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.5; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* Header */
+  .page-header { border-bottom: 1px solid #21262d; padding-bottom: 20px; margin-bottom: 28px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: #f0f6fc; letter-spacing: -0.5px; }
+  .page-header .subtitle { color: #8b949e; font-size: 12px; margin-top: 4px; }
+  .badge-as-of { background: #161b22; border: 1px solid #30363d; padding: 2px 10px; border-radius: 12px; font-size: 11px; color: #8b949e; display: inline-block; margin-top: 8px; }
+
+  /* Cameron framework box */
+  .cameron-box { background: #161b22; border: 1px solid #21262d; border-left: 3px solid #58a6ff; border-radius: 6px; padding: 16px 20px; margin-bottom: 28px; }
+  .cameron-box h2 { font-size: 13px; color: #58a6ff; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .cameron-criteria { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .criterion { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 6px 12px; font-size: 11px; color: #c9d1d9; }
+  .criterion span { color: #8b949e; }
+
+  /* Portfolio Impact */
+  .portfolio-impact { background: #161b22; border: 1px solid #21262d; border-left: 3px solid #d29922; border-radius: 6px; padding: 16px 20px; margin-bottom: 28px; }
+  .portfolio-impact h2 { font-size: 13px; color: #d29922; font-weight: 600; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 900px) { .impact-grid { grid-template-columns: 1fr; } }
+  .impact-card { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px 14px; }
+  .impact-ticker { font-size: 16px; font-weight: 800; color: #f0f6fc; margin-bottom: 4px; }
+  .impact-row { display: flex; justify-content: space-between; font-size: 11px; margin-top: 4px; }
+  .impact-label { color: #8b949e; }
+  .impact-val { color: #c9d1d9; }
+  .impact-gain { color: #3fb950; }
+  .impact-loss { color: #f85149; }
+
+  /* Master summary table */
+  .summary-section { margin-bottom: 36px; position: sticky; top: 0; z-index: 10; background: #0d1117; padding-bottom: 12px; }
+  .summary-section h2 { font-size: 13px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .summary-table-wrap { overflow-x: auto; }
+  table.summary { width: 100%; border-collapse: collapse; }
+  table.summary th { background: #161b22; color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; text-align: left; border-bottom: 1px solid #21262d; white-space: nowrap; }
+  table.summary td { padding: 8px 12px; border-bottom: 1px solid #161b22; white-space: nowrap; vertical-align: middle; }
+  table.summary tr:hover td { background: #161b22; }
+  .ticker-cell { font-weight: 700; color: #f0f6fc; font-size: 14px; }
+  .price-cell { color: #c9d1d9; }
+  .irr-cell { font-weight: 600; }
+  .score-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .score-5 { background: #0d4429; color: #3fb950; }
+  .score-4 { background: #0d4429; color: #56d364; }
+  .score-3 { background: #3d2a00; color: #d29922; }
+  .score-2 { background: #3d0d0d; color: #f85149; }
+  .action-add { color: #3fb950; font-weight: 600; font-size: 11px; }
+  .action-hold { color: #d29922; font-weight: 600; font-size: 11px; }
+  .action-trim { color: #f85149; font-weight: 600; font-size: 11px; }
+
+  /* Stock cards section */
+  .cards-section h2 { font-size: 13px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+  .stock-cards { display: grid; gap: 16px; }
+
+  /* Individual stock card */
+  details.stock-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
+  details.stock-card[open] { border-color: #30363d; }
+  details.stock-card summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; align-items: center; gap: 14px; user-select: none; }
+  details.stock-card summary::-webkit-details-marker { display: none; }
+  details.stock-card summary:hover { background: #1c2128; }
+  .card-ticker { font-size: 20px; font-weight: 800; color: #f0f6fc; min-width: 70px; }
+  .card-name { font-size: 12px; color: #8b949e; flex: 1; }
+  .card-price { font-size: 14px; color: #c9d1d9; font-weight: 600; min-width: 70px; text-align: right; }
+  .card-cost-basis { font-size: 11px; color: #8b949e; min-width: 90px; text-align: right; }
+  .card-irr-preview { font-size: 12px; font-weight: 600; min-width: 80px; text-align: right; }
+  .card-score-preview { min-width: 60px; text-align: right; }
+  .card-action-preview { min-width: 90px; text-align: right; font-weight: 700; font-size: 12px; }
+  .card-action-add { color: #3fb950; }
+  .card-action-hold { color: #d29922; }
+  .card-action-trim { color: #f85149; }
+  .expand-icon { color: #8b949e; font-size: 16px; transition: transform 0.2s; flex-shrink: 0; }
+  details[open] .expand-icon { transform: rotate(180deg); }
+
+  .card-body { padding: 0 18px 20px; }
+  .card-divider { height: 1px; background: #21262d; margin-bottom: 18px; }
+
+  /* Card sections */
+  .card-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .card-sections { grid-template-columns: 1fr; } }
+  .card-section-full { grid-column: 1 / -1; }
+
+  .section-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600; }
+
+  /* Checklist */
+  .checklist { display: flex; flex-direction: column; gap: 6px; }
+  .check-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .check-icon { width: 18px; height: 18px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; font-weight: 700; }
+  .check-pass { background: #0d4429; color: #3fb950; }
+  .check-warn { background: #3d2a00; color: #d29922; }
+  .check-fail { background: #3d0d0d; color: #f85149; }
+  .check-label { color: #c9d1d9; }
+  .verdict-bar { margin-top: 12px; padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; text-align: center; }
+  .verdict-strong { background: #0d4429; color: #3fb950; border: 1px solid #238636; }
+  .verdict-good { background: #1a3a1a; color: #56d364; border: 1px solid #2ea043; }
+  .verdict-mixed { background: #3d2a00; color: #d29922; border: 1px solid #9e6a03; }
+  .verdict-weak { background: #3d0d0d; color: #f85149; border: 1px solid #da3633; }
+
+  /* Financial table */
+  table.fin { width: 100%; border-collapse: collapse; font-size: 11px; }
+  table.fin th { color: #8b949e; text-align: right; padding: 4px 8px; border-bottom: 1px solid #21262d; font-weight: 400; }
+  table.fin th:first-child { text-align: left; }
+  table.fin td { padding: 5px 8px; text-align: right; border-bottom: 1px solid #161b22; color: #c9d1d9; }
+  table.fin td:first-child { text-align: left; color: #8b949e; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  table.fin .est { color: #8b949e; font-style: italic; }
+  table.fin .highlight { color: #3fb950; }
+
+  /* Valuation/DCF */
+  .dcf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .dcf-scenario { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 10px 12px; text-align: center; }
+  .dcf-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .dcf-iv { font-size: 16px; font-weight: 700; }
+  .dcf-bear .dcf-iv { color: #f85149; }
+  .dcf-base .dcf-iv { color: #d29922; }
+  .dcf-bull .dcf-iv { color: #3fb950; }
+  .dcf-vs { font-size: 10px; color: #8b949e; margin-top: 4px; }
+  .current-vs-iv { background: #0d1117; border: 1px solid #30363d; border-radius: 4px; padding: 6px 12px; font-size: 11px; text-align: center; }
+
+  /* IRR scenarios */
+  .irr-scenarios { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .scenario { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 10px 12px; text-align: center; }
+  .scenario-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .scenario-price { font-size: 16px; font-weight: 700; color: #f0f6fc; }
+  .scenario-ret { font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .scenario-vs { font-size: 10px; color: #8b949e; margin-top: 4px; }
+  .bear .scenario-ret { color: #f85149; }
+  .base .scenario-ret { color: #d29922; }
+  .bull .scenario-ret { color: #3fb950; }
+
+  /* Thesis block */
+  .thesis-block { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; }
+  .thesis-primary { font-size: 12px; color: #c9d1d9; line-height: 1.6; margin-bottom: 10px; }
+  .thesis-source { font-size: 10px; color: #58a6ff; margin-bottom: 10px; }
+  .thesis-row { display: flex; gap: 6px; align-items: flex-start; margin-top: 8px; font-size: 11px; }
+  .thesis-row-label { color: #8b949e; min-width: 95px; flex-shrink: 0; }
+  .thesis-support { color: #3fb950; }
+  .thesis-challenge { color: #f85149; }
+  .thesis-falsify { color: #d29922; }
+
+  /* Action verdict */
+  .action-verdict { padding: 14px 18px; border-radius: 6px; text-align: center; }
+  .action-verdict-add { background: #0d4429; border: 1px solid #238636; }
+  .action-verdict-hold { background: #3d2a00; border: 1px solid #9e6a03; }
+  .action-verdict-trim { background: #3d0d0d; border: 1px solid #da3633; }
+  .action-verdict-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+  .action-verdict-add .action-verdict-title { color: #3fb950; }
+  .action-verdict-hold .action-verdict-title { color: #d29922; }
+  .action-verdict-trim .action-verdict-title { color: #f85149; }
+  .action-verdict-rationale { font-size: 11px; color: #c9d1d9; line-height: 1.5; }
+
+  /* Helpers */
+  .green { color: #3fb950; }
+  .amber { color: #d29922; }
+  .red { color: #f85149; }
+  .blue { color: #58a6ff; }
+  .muted { color: #8b949e; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0d1117; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Holdings Deep Dive &mdash; CRM &middot; AMZN &middot; TSM</h1>
+    <div class="subtitle">Hold / Add / Trim analysis using Cameron framework &bull; Existing positions only</div>
+    <span class="badge-as-of">As of June 6, 2026</span>
+  </div>
+
+  <!-- Cameron Framework -->
+  <div class="cameron-box">
+    <h2>Cameron 5-Point Checklist Methodology</h2>
+    <p style="font-size:11px; color:#8b949e; line-height:1.6;">Each holding is scored on 5 fundamental quality criteria. Pass = green, Warn = amber, Fail = red. Action threshold: 5/5 or 4/5 = Add, 3/5 = Hold, &lt;3 = Trim.</p>
+    <div class="cameron-criteria">
+      <div class="criterion"><span>1.</span> Topline Revenue Growth (20%+ YoY)</div>
+      <div class="criterion"><span>2.</span> EBITDA Growth (expanding margin)</div>
+      <div class="criterion"><span>3.</span> Strong Free Cash Flow (FCF positive + growing)</div>
+      <div class="criterion"><span>4.</span> Low Debt (net cash or manageable leverage)</div>
+      <div class="criterion"><span>5.</span> Well-Priced (discount/fair value vs. intrinsic)</div>
+    </div>
+  </div>
+
+  <!-- Portfolio Impact -->
+  <div class="portfolio-impact">
+    <h2>Current Position Snapshot</h2>
+    <div class="impact-grid">
+      <div class="impact-card">
+        <div class="impact-ticker">CRM</div>
+        <div class="impact-row"><span class="impact-label">Shares held</span><span class="impact-val">37</span></div>
+        <div class="impact-row"><span class="impact-label">Avg cost basis</span><span class="impact-val">$200.84</span></div>
+        <div class="impact-row"><span class="impact-label">Current price</span><span class="impact-val">$285</span></div>
+        <div class="impact-row"><span class="impact-label">Position value</span><span class="impact-val">$10,545</span></div>
+        <div class="impact-row"><span class="impact-label">Unrealized P/L</span><span class="impact-gain">+$3,114 (+42%)</span></div>
+        <div class="impact-row"><span class="impact-label">% of portfolio</span><span class="impact-val">1.1%</span></div>
+        <div class="impact-row" style="margin-top:8px; border-top: 1px solid #21262d; padding-top: 6px;"><span class="impact-label">If ADD 20 shares</span><span class="impact-gain">+$5,700 - new value $16,245</span></div>
+      </div>
+      <div class="impact-card">
+        <div class="impact-ticker">AMZN</div>
+        <div class="impact-row"><span class="impact-label">Shares held</span><span class="impact-val">52</span></div>
+        <div class="impact-row"><span class="impact-label">Avg cost basis</span><span class="impact-val">$256.52</span></div>
+        <div class="impact-row"><span class="impact-label">Current price</span><span class="impact-val">$225</span></div>
+        <div class="impact-row"><span class="impact-label">Position value</span><span class="impact-val">$11,700</span></div>
+        <div class="impact-row"><span class="impact-label">Unrealized P/L</span><span class="impact-loss">-$1,639 (-13%)</span></div>
+        <div class="impact-row"><span class="impact-label">% of portfolio</span><span class="impact-val">1.2%</span></div>
+        <div class="impact-row" style="margin-top:8px; border-top: 1px solid #21262d; padding-top: 6px;"><span class="impact-label">HOLD action</span><span class="amber">Monitor $200 support level</span></div>
+      </div>
+      <div class="impact-card">
+        <div class="impact-ticker">TSM</div>
+        <div class="impact-row"><span class="impact-label">Shares held</span><span class="impact-val">94.8</span></div>
+        <div class="impact-row"><span class="impact-label">Avg cost basis</span><span class="impact-val">$446.69</span></div>
+        <div class="impact-row"><span class="impact-label">Current price</span><span class="impact-val">$200 (ADR)</span></div>
+        <div class="impact-row"><span class="impact-label">Position value</span><span class="impact-val">$18,960</span></div>
+        <div class="impact-row"><span class="impact-label">Unrealized P/L</span><span class="impact-loss">-$23,386 (-55%)</span></div>
+        <div class="impact-row"><span class="impact-label">% of portfolio</span><span class="impact-val">2.0%</span></div>
+        <div class="impact-row" style="margin-top:8px; border-top: 1px solid #21262d; padding-top: 6px;"><span class="impact-label">If ADD 50 ADR shares</span><span class="impact-gain">+$10,000 - avg cost reduces</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Master Summary -->
+  <div class="summary-section">
+    <h2>Master Summary</h2>
+    <div class="summary-table-wrap">
+      <table class="summary">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Current Price</th>
+            <th>Shares</th>
+            <th>Position Value</th>
+            <th>Base IRR (1yr)</th>
+            <th>Cameron Score</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="ticker-cell">CRM</td>
+            <td class="price-cell">$285</td>
+            <td class="price-cell">37</td>
+            <td class="price-cell">$10,545</td>
+            <td class="irr-cell green">+19% base</td>
+            <td><span class="score-pill score-4">4/5</span></td>
+            <td class="action-add">ADD</td>
+          </tr>
+          <tr>
+            <td class="ticker-cell">AMZN</td>
+            <td class="price-cell">$225</td>
+            <td class="price-cell">52</td>
+            <td class="price-cell">$11,700</td>
+            <td class="irr-cell amber">+24% base</td>
+            <td><span class="score-pill score-4">4/5</span></td>
+            <td class="action-hold">HOLD</td>
+          </tr>
+          <tr>
+            <td class="ticker-cell">TSM</td>
+            <td class="price-cell">$200</td>
+            <td class="price-cell">94.8</td>
+            <td class="price-cell">$18,960</td>
+            <td class="irr-cell green">+20% base</td>
+            <td><span class="score-pill score-4">4/5</span></td>
+            <td class="action-add">ADD</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Stock Cards -->
+  <div class="cards-section">
+    <h2>Deep Dive — Stock Cards</h2>
+    <div class="stock-cards">
+
+      <!-- CRM -->
+      <details class="stock-card">
+        <summary>
+          <div class="card-ticker">CRM</div>
+          <div class="card-name">Salesforce &mdash; 37 shares @ $200.84 avg</div>
+          <div class="card-price">$285</div>
+          <div class="card-cost-basis amber">+42% unrealized</div>
+          <div class="card-irr-preview green">+19% base IRR</div>
+          <div class="card-score-preview"><span class="score-pill score-4">4/5</span></div>
+          <div class="card-action-preview card-action-add">ADD</div>
+          <div class="expand-icon">&#9660;</div>
+        </summary>
+        <div class="card-body">
+          <div class="card-divider"></div>
+          <div class="card-sections">
+
+            <!-- A. Cameron Checklist -->
+            <div>
+              <div class="section-label">A. Cameron 5-Point Checklist</div>
+              <div class="checklist">
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Topline Revenue Growth &mdash; 8% YoY FY25; Agentforce ramp expected to re-accelerate to 10%+</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">EBITDA Growth &mdash; 33% adj EBITDA margin FY25, expanding toward 36%+ FY27</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Strong FCF &mdash; $13.1B FY25, 35% FCF margin; best FCF profile in enterprise SaaS</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Low Debt &mdash; Net cash position ~$5B; balance sheet is clean</span></div>
+                <div class="check-item"><div class="check-icon check-warn">&#9888;</div><span class="check-label">Well-Priced &mdash; ~32x forward P/E; borderline pass at $285 vs. base IV $320; Agentforce optionality unpriced</span></div>
+              </div>
+              <div class="verdict-bar verdict-good">4/5 &mdash; ADD (Agentforce monetization not in consensus; price near base IV)</div>
+            </div>
+
+            <!-- B. Financial One-Pager -->
+            <div>
+              <div class="section-label">B. Financial One-Pager (FY17 - FY27E)</div>
+              <div style="overflow-x:auto;">
+                <table class="fin">
+                  <thead><tr><th></th><th>FY17</th><th>FY18</th><th>FY19</th><th>FY20</th><th>FY21</th><th>FY22</th><th>FY23</th><th>FY24</th><th>FY25</th><th class="est">FY26E</th><th class="est">FY27E</th></tr></thead>
+                  <tbody>
+                    <tr><td>Revenue ($B)</td><td>$10.5</td><td>$13.3</td><td>$16.0</td><td>$21.3</td><td>$26.5</td><td>$29.8</td><td>$31.4</td><td>$34.9</td><td>$37.9</td><td class="est">$40.9</td><td class="est">$44.5</td></tr>
+                    <tr><td>YoY %</td><td class="muted">-</td><td class="highlight">+27%</td><td class="highlight">+20%</td><td class="highlight">+33%</td><td class="highlight">+24%</td><td class="highlight">+13%</td><td class="highlight">+5%</td><td class="highlight">+11%</td><td class="highlight">+9%</td><td class="est highlight">+8%</td><td class="est highlight">+9%</td></tr>
+                    <tr><td>Gross Margin %</td><td>74%</td><td>75%</td><td>75%</td><td>75%</td><td>74%</td><td>73%</td><td>75%</td><td>76%</td><td>76%</td><td class="est">77%</td><td class="est">77%</td></tr>
+                    <tr><td>Adj EBITDA ($B)</td><td>$1.6</td><td>$2.2</td><td>$2.9</td><td>$3.8</td><td>$4.7</td><td>$5.5</td><td>$7.4</td><td>$9.6</td><td>$12.5</td><td class="est">$14.3</td><td class="est">$16.5</td></tr>
+                    <tr><td>EBITDA Margin %</td><td>15%</td><td>17%</td><td>18%</td><td>18%</td><td>18%</td><td>18%</td><td>24%</td><td>28%</td><td>33%</td><td class="est">35%</td><td class="est">37%</td></tr>
+                    <tr><td>FCF ($B)</td><td>$1.5</td><td>$2.0</td><td>$2.8</td><td>$3.5</td><td>$3.8</td><td>$4.8</td><td>$7.2</td><td>$9.5</td><td>$13.1</td><td class="est">$14.8</td><td class="est">$17.0</td></tr>
+                    <tr><td>Net Debt/(Cash)</td><td class="amber">$(0.5)B</td><td class="amber">$(1.1)B</td><td class="amber">$(1.5)B</td><td class="amber">$(1.8)B</td><td class="amber">$(2.5)B</td><td class="amber">$(3.2)B</td><td class="highlight">$(4.0)B</td><td class="highlight">$(4.5)B</td><td class="highlight">$(5.0)B</td><td class="est highlight">$(6.0)B</td><td class="est highlight">$(7.5)B</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- C. Valuation & DCF -->
+            <div>
+              <div class="section-label">C. Valuation &amp; DCF &mdash; Intrinsic Value Scenarios</div>
+              <div class="dcf-grid">
+                <div class="dcf-scenario dcf-bear">
+                  <div class="dcf-label">Bear IV</div>
+                  <div class="dcf-iv">$210</div>
+                  <div class="dcf-vs muted">Assumes 6% rev CAGR, 30x FCF</div>
+                </div>
+                <div class="dcf-scenario dcf-base">
+                  <div class="dcf-label">Base IV</div>
+                  <div class="dcf-iv">$320</div>
+                  <div class="dcf-vs muted">Assumes 9% rev CAGR, 35x FCF</div>
+                </div>
+                <div class="dcf-scenario dcf-bull">
+                  <div class="dcf-label">Bull IV</div>
+                  <div class="dcf-iv">$420</div>
+                  <div class="dcf-vs muted">Agentforce adds +10% rev; 38x FCF</div>
+                </div>
+              </div>
+              <div class="current-vs-iv">Current $285 &mdash; <span class="green">11% discount to base IV $320</span> &mdash; DCF discount rate 9%, 5yr terminal</div>
+            </div>
+
+            <!-- D. IRR Table -->
+            <div>
+              <div class="section-label">D. 1-Year IRR Analysis (vs. 15% target)</div>
+              <div class="irr-scenarios">
+                <div class="scenario bear">
+                  <div class="scenario-label">Bear</div>
+                  <div class="scenario-price">$230</div>
+                  <div class="scenario-ret">-19%</div>
+                  <div class="scenario-vs muted">Miss target</div>
+                </div>
+                <div class="scenario base">
+                  <div class="scenario-label">Base</div>
+                  <div class="scenario-price">$340</div>
+                  <div class="scenario-ret">+19%</div>
+                  <div class="scenario-vs green">Beat target</div>
+                </div>
+                <div class="scenario bull">
+                  <div class="scenario-label">Bull</div>
+                  <div class="scenario-price">$440</div>
+                  <div class="scenario-ret">+54%</div>
+                  <div class="scenario-vs green">Strong beat</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- E. Thesis + Signal Feed -->
+            <div>
+              <div class="section-label">E. Thesis + Signal Feed</div>
+              <div class="thesis-block">
+                <div class="thesis-primary">"Agentforce is the most underappreciated AI monetization story in enterprise software - Salesforce owns the customer data layer and is converting it into an AI agent execution platform."</div>
+                <div class="thesis-source">Source: BVP Atlas + Goldman Sachs Blue Paper</div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 1:</span><span class="thesis-support">Agentforce seat attach rate accelerating in mid-market; 1,000+ enterprise deals closed in FY25</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 2:</span><span class="thesis-support">Data Cloud growing 100%+ YoY - creates proprietary customer data flywheel competitors cannot replicate</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 3:</span><span class="thesis-support">$13.1B FCF funds aggressive buyback at current prices; management buying</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Challenge 1:</span><span class="thesis-challenge">Microsoft Copilot + Dynamics direct compete; MSFT bundling advantage in O365 accounts</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Challenge 2:</span><span class="thesis-challenge">Revenue growth stuck at 8-9% - premium SaaS multiple requires re-acceleration to hold</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Falsify when:</span><span class="thesis-falsify">Agentforce ARR misses $1B by end of FY26; revenue growth decelerates below 7%</span></div>
+              </div>
+            </div>
+
+            <!-- F. Hold/Add/Trim -->
+            <div>
+              <div class="section-label">F. Recommendation</div>
+              <div class="action-verdict action-verdict-add">
+                <div class="action-verdict-title">ADD</div>
+                <div class="action-verdict-rationale">Trading 11% below base IV at $285. Agentforce monetization is not in consensus models - this is the rare case where the AI optionality is real and unpriced. FCF yield is attractive at 35% margin. Add 15-20 shares to bring position to ~$16K. Set stop-loss at $230 (bear IV). Re-evaluate if Agentforce ARR misses consensus at FY26 Q2 earnings.</div>
+              </div>
+            </div>
+
+          </div><!-- card-sections -->
+        </div><!-- card-body -->
+      </details>
+
+      <!-- AMZN -->
+      <details class="stock-card">
+        <summary>
+          <div class="card-ticker">AMZN</div>
+          <div class="card-name">Amazon &mdash; 52 shares @ $256.52 avg</div>
+          <div class="card-price">$225</div>
+          <div class="card-cost-basis red">-13% unrealized</div>
+          <div class="card-irr-preview amber">+24% base IRR</div>
+          <div class="card-score-preview"><span class="score-pill score-4">4/5</span></div>
+          <div class="card-action-preview card-action-hold">HOLD</div>
+          <div class="expand-icon">&#9660;</div>
+        </summary>
+        <div class="card-body">
+          <div class="card-divider"></div>
+          <div class="card-sections">
+
+            <!-- A. Cameron Checklist -->
+            <div>
+              <div class="section-label">A. Cameron 5-Point Checklist</div>
+              <div class="checklist">
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Topline Revenue Growth &mdash; 11% YoY FY25; AWS growing 20%+ with AI spend acceleration</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">EBITDA Growth &mdash; 18% adj EBITDA margin, expanding rapidly from 5% in FY22</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Strong FCF &mdash; $68B FY25; extraordinary multi-segment FCF generation</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Low Debt &mdash; Net cash ~$55B; fortress balance sheet</span></div>
+                <div class="check-item"><div class="check-icon check-warn">&#9888;</div><span class="check-label">Well-Priced &mdash; ~37x forward P/E; trading near base IV $255; slight premium to fair value</span></div>
+              </div>
+              <div class="verdict-bar verdict-good">4/5 &mdash; HOLD (near base IV; wait for pullback toward $200 to add)</div>
+            </div>
+
+            <!-- B. Financial One-Pager -->
+            <div>
+              <div class="section-label">B. Financial One-Pager (FY17 - FY27E)</div>
+              <div style="overflow-x:auto;">
+                <table class="fin">
+                  <thead><tr><th></th><th>FY17</th><th>FY18</th><th>FY19</th><th>FY20</th><th>FY21</th><th>FY22</th><th>FY23</th><th>FY24</th><th>FY25</th><th class="est">FY26E</th><th class="est">FY27E</th></tr></thead>
+                  <tbody>
+                    <tr><td>Revenue ($B)</td><td>$178</td><td>$233</td><td>$281</td><td>$386</td><td>$470</td><td>$514</td><td>$575</td><td>$638</td><td>$710</td><td class="est">$785</td><td class="est">$865</td></tr>
+                    <tr><td>YoY %</td><td class="muted">-</td><td class="highlight">+31%</td><td class="highlight">+20%</td><td class="highlight">+38%</td><td class="highlight">+22%</td><td class="highlight">+9%</td><td class="highlight">+12%</td><td class="highlight">+11%</td><td class="highlight">+11%</td><td class="est highlight">+11%</td><td class="est highlight">+10%</td></tr>
+                    <tr><td>Gross Margin %</td><td>37%</td><td>40%</td><td>41%</td><td>40%</td><td>42%</td><td>44%</td><td>47%</td><td>49%</td><td>49%</td><td class="est">51%</td><td class="est">52%</td></tr>
+                    <tr><td>Adj EBITDA ($B)</td><td>$8</td><td>$14</td><td>$19</td><td>$33</td><td>$38</td><td>$26</td><td>$56</td><td>$112</td><td>$130</td><td class="est">$155</td><td class="est">$180</td></tr>
+                    <tr><td>EBITDA Margin %</td><td>4%</td><td>6%</td><td>7%</td><td>9%</td><td>8%</td><td>5%</td><td>10%</td><td>18%</td><td>18%</td><td class="est">20%</td><td class="est">21%</td></tr>
+                    <tr><td>FCF ($B)</td><td>$8</td><td>$10</td><td>$22</td><td>$21</td><td>$(8)</td><td>$(12)</td><td>$32</td><td>$55</td><td>$68</td><td class="est">$85</td><td class="est">$105</td></tr>
+                    <tr><td>Net Debt/(Cash)</td><td class="highlight">$(17)B</td><td class="highlight">$(22)B</td><td class="highlight">$(35)B</td><td class="highlight">$(42)B</td><td class="highlight">$(35)B</td><td class="highlight">$(20)B</td><td class="highlight">$(40)B</td><td class="highlight">$(50)B</td><td class="highlight">$(55)B</td><td class="est highlight">$(65)B</td><td class="est highlight">$(80)B</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- C. Valuation & DCF -->
+            <div>
+              <div class="section-label">C. Valuation &amp; DCF &mdash; Intrinsic Value Scenarios</div>
+              <div class="dcf-grid">
+                <div class="dcf-scenario dcf-bear">
+                  <div class="dcf-label">Bear IV</div>
+                  <div class="dcf-iv">$160</div>
+                  <div class="dcf-vs muted">AWS slows to 15%, retail margins compress</div>
+                </div>
+                <div class="dcf-scenario dcf-base">
+                  <div class="dcf-label">Base IV</div>
+                  <div class="dcf-iv">$255</div>
+                  <div class="dcf-vs muted">AWS 20% CAGR, retail 5% EBIT expansion</div>
+                </div>
+                <div class="dcf-scenario dcf-bull">
+                  <div class="dcf-label">Bull IV</div>
+                  <div class="dcf-iv">$380</div>
+                  <div class="dcf-vs muted">Bedrock agents = new AWS; Ads 25% CAGR</div>
+                </div>
+              </div>
+              <div class="current-vs-iv">Current $225 &mdash; <span class="green">12% discount to base IV $255</span> &mdash; but only $65 above bear IV; limited margin of safety</div>
+            </div>
+
+            <!-- D. IRR Table -->
+            <div>
+              <div class="section-label">D. 1-Year IRR Analysis (vs. 15% target)</div>
+              <div class="irr-scenarios">
+                <div class="scenario bear">
+                  <div class="scenario-label">Bear</div>
+                  <div class="scenario-price">$175</div>
+                  <div class="scenario-ret">-22%</div>
+                  <div class="scenario-vs muted">Miss target</div>
+                </div>
+                <div class="scenario base">
+                  <div class="scenario-label">Base</div>
+                  <div class="scenario-price">$280</div>
+                  <div class="scenario-ret">+24%</div>
+                  <div class="scenario-vs green">Beat target</div>
+                </div>
+                <div class="scenario bull">
+                  <div class="scenario-label">Bull</div>
+                  <div class="scenario-price">$400</div>
+                  <div class="scenario-ret">+78%</div>
+                  <div class="scenario-vs green">Strong beat</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- E. Thesis + Signal Feed -->
+            <div>
+              <div class="section-label">E. Thesis + Signal Feed</div>
+              <div class="thesis-block">
+                <div class="thesis-primary">"AWS is becoming the default AI deployment layer. Bedrock + agent infrastructure positions Amazon as the hyperscaler most exposed to AI agent infrastructure spend - the platform play, not just cloud IaaS."</div>
+                <div class="thesis-source">Source: a16z + Sequoia Capital</div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 1:</span><span class="thesis-support">AWS revenue accelerating - $115B run rate growing 20%+; AI workloads driving 50%+ of new commitments</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 2:</span><span class="thesis-support">Advertising segment at $60B+ ARR growing 20% YoY - most undervalued business unit, zero credit in consensus</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 3:</span><span class="thesis-support">Bedrock model catalog + Nova models closing gap with Azure OpenAI; enterprise AI agent spend anchoring to AWS</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Challenge 1:</span><span class="thesis-challenge">Microsoft Azure + OpenAI relationship creates structural disadvantage in enterprise AI contracts</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Challenge 2:</span><span class="thesis-challenge">Retail segment still growing slowly - capital intensity from logistics/fulfillment dilutes FCF conversion</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Falsify when:</span><span class="thesis-falsify">AWS growth decelerates below 17%; Azure AI market share exceeds AWS in enterprise workloads</span></div>
+              </div>
+            </div>
+
+            <!-- F. Hold/Add/Trim -->
+            <div>
+              <div class="section-label">F. Recommendation</div>
+              <div class="action-verdict action-verdict-hold">
+                <div class="action-verdict-title">HOLD</div>
+                <div class="action-verdict-rationale">At $225, AMZN is trading near base IV ($255) with only $65 of cushion above bear case ($160). You're already underwater on this position (-13% vs. cost basis). The thesis is intact but the risk/reward doesn't justify adding at current prices. Hold existing 52 shares. Add trigger: pullback to $195-200 range (bear IV + 20% buffer). That level provides a more asymmetric entry. Watch Q2 AWS growth rate - needs to sustain 20%+ to justify holding.</div>
+              </div>
+            </div>
+
+          </div><!-- card-sections -->
+        </div><!-- card-body -->
+      </details>
+
+      <!-- TSM -->
+      <details class="stock-card">
+        <summary>
+          <div class="card-ticker">TSM</div>
+          <div class="card-name">TSMC &mdash; 94.8 shares @ $446.69 avg (ADR)</div>
+          <div class="card-price">$200 ADR</div>
+          <div class="card-cost-basis red">-55% unrealized</div>
+          <div class="card-irr-preview green">+20% base IRR</div>
+          <div class="card-score-preview"><span class="score-pill score-4">4/5</span></div>
+          <div class="card-action-preview card-action-add">ADD</div>
+          <div class="expand-icon">&#9660;</div>
+        </summary>
+        <div class="card-body">
+          <div class="card-divider"></div>
+          <div class="card-sections">
+
+            <!-- A. Cameron Checklist -->
+            <div>
+              <div class="section-label">A. Cameron 5-Point Checklist</div>
+              <div class="checklist">
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Topline Revenue Growth &mdash; 27% YoY FY25; AI chip demand driving strongest growth cycle in TSMC history</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">EBITDA Growth &mdash; 61% EBITDA margin FY25; expanding as 3nm/2nm mix improves</span></div>
+                <div class="check-item"><div class="check-icon check-warn">&#9888;</div><span class="check-label">Strong FCF &mdash; $28B FY25 but heavy capex cycle (~$38B); FCF will inflect positively FY27 as capex normalizes</span></div>
+                <div class="check-item"><div class="check-icon check-warn">&#9888;</div><span class="check-label">Low Debt &mdash; Slight net debt position due to capex cycle; structurally sound, not a credit risk</span></div>
+                <div class="check-item"><div class="check-icon check-pass">&#10003;</div><span class="check-label">Well-Priced &mdash; 22x forward P/E; cheapest of the three; most attractive entry point vs. intrinsic value</span></div>
+              </div>
+              <div class="verdict-bar verdict-good">4/5 &mdash; ADD (most attractively priced; geopolitical risk is the overhang, not fundamentals)</div>
+            </div>
+
+            <!-- B. Financial One-Pager -->
+            <div>
+              <div class="section-label">B. Financial One-Pager (FY17 - FY27E)</div>
+              <div style="overflow-x:auto;">
+                <table class="fin">
+                  <thead><tr><th></th><th>FY17</th><th>FY18</th><th>FY19</th><th>FY20</th><th>FY21</th><th>FY22</th><th>FY23</th><th>FY24</th><th>FY25</th><th class="est">FY26E</th><th class="est">FY27E</th></tr></thead>
+                  <tbody>
+                    <tr><td>Revenue ($B)</td><td>$32.9</td><td>$34.2</td><td>$35.8</td><td>$45.5</td><td>$56.8</td><td>$75.9</td><td>$69.3</td><td>$88.0</td><td>$112</td><td class="est">$138</td><td class="est">$162</td></tr>
+                    <tr><td>YoY %</td><td class="muted">-</td><td class="highlight">+4%</td><td class="highlight">+5%</td><td class="highlight">+27%</td><td class="highlight">+25%</td><td class="highlight">+34%</td><td class="red">-9%</td><td class="highlight">+27%</td><td class="highlight">+27%</td><td class="est highlight">+23%</td><td class="est highlight">+17%</td></tr>
+                    <tr><td>Gross Margin %</td><td>50%</td><td>48%</td><td>46%</td><td>53%</td><td>52%</td><td>60%</td><td>55%</td><td>53%</td><td>58%</td><td class="est">60%</td><td class="est">62%</td></tr>
+                    <tr><td>Adj EBITDA ($B)</td><td>$17</td><td>$18</td><td>$19</td><td>$26</td><td>$33</td><td>$47</td><td>$38</td><td>$52</td><td>$68</td><td class="est">$85</td><td class="est">$102</td></tr>
+                    <tr><td>EBITDA Margin %</td><td>52%</td><td>53%</td><td>53%</td><td>57%</td><td>58%</td><td>62%</td><td>55%</td><td>59%</td><td>61%</td><td class="est">62%</td><td class="est">63%</td></tr>
+                    <tr><td>FCF ($B)</td><td>$5</td><td>$6</td><td>$8</td><td>$13</td><td>$15</td><td>$18</td><td>$10</td><td>$22</td><td>$28</td><td class="est">$38</td><td class="est">$55</td></tr>
+                    <tr><td>Net Debt/(Cash)</td><td class="highlight">$(3)B</td><td class="highlight">$(4)B</td><td class="highlight">$(6)B</td><td class="highlight">$(10)B</td><td class="highlight">$(12)B</td><td class="highlight">$(14)B</td><td class="amber">$2B</td><td class="amber">$5B</td><td class="amber">$8B</td><td class="est amber">$5B</td><td class="est highlight">$(5)B</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- C. Valuation & DCF -->
+            <div>
+              <div class="section-label">C. Valuation &amp; DCF &mdash; Intrinsic Value Scenarios</div>
+              <div class="dcf-grid">
+                <div class="dcf-scenario dcf-bear">
+                  <div class="dcf-label">Bear IV</div>
+                  <div class="dcf-iv">$145</div>
+                  <div class="dcf-vs muted">Taiwan risk premium expands; US fab ramp delays</div>
+                </div>
+                <div class="dcf-scenario dcf-base">
+                  <div class="dcf-label">Base IV</div>
+                  <div class="dcf-iv">$215</div>
+                  <div class="dcf-vs muted">20% rev CAGR, FCF inflects FY27, 22x exit</div>
+                </div>
+                <div class="dcf-scenario dcf-bull">
+                  <div class="dcf-label">Bull IV</div>
+                  <div class="dcf-iv">$310</div>
+                  <div class="dcf-vs muted">Arizona fabs de-risk geopolitical; AI capex stays elevated through 2028</div>
+                </div>
+              </div>
+              <div class="current-vs-iv">Current $200 ADR &mdash; <span class="green">7% discount to base IV $215</span> &mdash; geopolitical risk discount is the opportunity, not a fundamental flaw</div>
+            </div>
+
+            <!-- D. IRR Table -->
+            <div>
+              <div class="section-label">D. 1-Year IRR Analysis (vs. 15% target)</div>
+              <div class="irr-scenarios">
+                <div class="scenario bear">
+                  <div class="scenario-label">Bear</div>
+                  <div class="scenario-price">$160</div>
+                  <div class="scenario-ret">-20%</div>
+                  <div class="scenario-vs muted">Miss target</div>
+                </div>
+                <div class="scenario base">
+                  <div class="scenario-label">Base</div>
+                  <div class="scenario-price">$240</div>
+                  <div class="scenario-ret">+20%</div>
+                  <div class="scenario-vs green">Beat target</div>
+                </div>
+                <div class="scenario bull">
+                  <div class="scenario-label">Bull</div>
+                  <div class="scenario-price">$340</div>
+                  <div class="scenario-ret">+70%</div>
+                  <div class="scenario-vs green">Strong beat</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- E. Thesis + Signal Feed -->
+            <div>
+              <div class="section-label">E. Thesis + Signal Feed</div>
+              <div class="thesis-block">
+                <div class="thesis-primary">"TSMC is the toll road on all AI chip production. Every GPU (NVIDIA), TPU (Google), custom silicon (Apple, AMD, Qualcomm) runs through their 3nm/2nm fabs. There is no AI build-out without TSMC."</div>
+                <div class="thesis-source">Source: Coatue AI Infrastructure Thesis + Goldman Sachs Blue Paper</div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 1:</span><span class="thesis-support">NVIDIA, Apple, AMD all locked into TSMC 3nm/N2 through 2027+; no credible alternative at leading edge</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 2:</span><span class="thesis-support">CoWoS advanced packaging capacity = the real bottleneck for AI GPUs; TSMC controls the chokepoint</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Support 3:</span><span class="thesis-support">Arizona fab progress de-risks geopolitical narrative; geopolitical discount is compressing, not expanding</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Challenge 1:</span><span class="thesis-challenge">Taiwan Strait risk is a real tail risk; any military escalation would crater ADR overnight</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Challenge 2:</span><span class="thesis-challenge">Samsung and Intel foundry gaining at mature nodes; TSMC premium only defensible at leading edge</span></div>
+                <div class="thesis-row"><span class="thesis-row-label">Falsify when:</span><span class="thesis-challenge">Samsung 2nm yields exceed TSMC; US export controls expand to restrict TSMC's China revenue (&gt;25% of sales)</span></div>
+              </div>
+            </div>
+
+            <!-- F. Hold/Add/Trim -->
+            <div>
+              <div class="section-label">F. Recommendation</div>
+              <div class="action-verdict action-verdict-add">
+                <div class="action-verdict-title">ADD</div>
+                <div class="action-verdict-rationale">You're underwater -55% vs. cost basis due to the geopolitical risk discount applied since 2022. The fundamental business is stronger than ever - revenue up 27% YoY, EBITDA margins at 61%. At $200 ADR (7% below base IV), this is the most attractively priced of your three holdings on a fundamental basis. The unrealized loss is a sunk cost - the relevant question is forward IRR. Add 40-50 ADR shares to average down cost basis and increase exposure to the AI infrastructure capex cycle. Hard stop: $145 (bear IV) represents ~25% downside from here.</div>
+              </div>
+            </div>
+
+          </div><!-- card-sections -->
+        </div><!-- card-body -->
+      </details>
+
+    </div><!-- end stock-cards -->
+  </div><!-- end cards-section -->
+
+  <div style="height:40px; text-align:center; color:#30363d; font-size:11px; padding-top:16px;">
+    Investment Intelligence Agent &bull; For informational purposes only &bull; Not financial advice
+  </div>
+
+</div><!-- end container -->
+</body>
+</html>

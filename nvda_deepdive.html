@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NVDA Deep Dive | Investment Intelligence</title>
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2128;
+    --bg-card: #21262d;
+    --bg-hover: #2d333b;
+    --border: #30363d;
+    --border-bright: #484f58;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --green: #3fb950;
+    --green-dim: #1a3a21;
+    --green-bright: #56d364;
+    --red: #f85149;
+    --red-dim: #3a1a1a;
+    --red-bright: #ff7b72;
+    --amber: #d29922;
+    --amber-dim: #3a2d0a;
+    --amber-bright: #f0a421;
+    --purple: #bc8cff;
+    --purple-dim: #2d1f4a;
+    --blue: #58a6ff;
+    --blue-dim: #1a2a3a;
+    --teal: #39d4c8;
+    --teal-dim: #0d2e2d;
+    --gray-signal: #adbac7;
+    --gray-dim: #2d333b;
+    --accent: #1f6feb;
+    --font-mono: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ─── LAYOUT ─── */
+  .wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+  }
+
+  /* ─── HEADER ─── */
+  .site-header {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .site-logo {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .site-logo span { color: var(--blue); }
+  .site-divider { width: 1px; height: 20px; background: var(--border); }
+
+  /* ─── HERO ─── */
+  .hero {
+    padding: 32px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .hero-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .ticker-block {}
+  .ticker-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+  .ticker-symbol {
+    font-family: var(--font-mono);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .ticker-name {
+    font-size: 15px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    padding-top: 6px;
+  }
+  .ticker-meta {
+    display: flex;
+    gap: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .ticker-meta span { display: flex; gap: 6px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; }
+  .dot.amber { background: var(--amber); }
+
+  .conviction-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .conviction-score {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--green-bright);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .conviction-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .conviction-bar {
+    width: 200px;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .conviction-fill {
+    height: 100%;
+    width: 74%;
+    background: linear-gradient(90deg, var(--amber), var(--green));
+    border-radius: 2px;
+  }
+
+  .thesis-summary {
+    margin-top: 20px;
+    padding: 14px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .thesis-summary strong { color: var(--text-primary); }
+
+  /* ─── SECTION HEADERS ─── */
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+  }
+  .section-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .badge-bull { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+  .badge-bear { background: var(--red-dim); color: var(--red-bright); border: 1px solid var(--red); }
+
+  /* ─── GRID ─── */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--border-bright); }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .signal-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .signal-early { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .signal-emerging { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+  .signal-consensus { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+
+  .card-claim {
+    font-size: 12px;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .evidence-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .evidence-list li {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    padding-left: 12px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .evidence-list li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--text-muted);
+  }
+  .source-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    font-style: normal;
+    white-space: nowrap;
+  }
+  .src-vc { background: var(--purple-dim); color: var(--purple); }
+  .src-inst { background: var(--blue-dim); color: var(--blue); }
+  .src-sub { background: var(--teal-dim); color: var(--teal); }
+  .src-tw { background: var(--gray-dim); color: var(--gray-signal); }
+
+  /* ─── FALSIFIERS ─── */
+  .falsifier-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    border-left: 3px solid var(--red);
+  }
+  .falsifier-card:hover { border-color: var(--border-bright); border-left-color: var(--red); }
+
+  .falsifier-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .falsifier-claim {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--red-bright);
+    line-height: 1.4;
+  }
+  .status-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-monitor { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+  .status-elevated { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .status-critical { background: var(--red-dim); color: var(--red-bright); border: 1px solid var(--red); }
+
+  .threshold {
+    margin-top: 12px;
+    padding: 8px 10px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--amber-bright);
+    line-height: 1.5;
+  }
+  .threshold-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+  }
+
+  /* ─── SIGNAL FEED ─── */
+  .feed-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .feed-item:last-child { border-bottom: none; }
+
+  .feed-source-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .feed-vc { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple-dim); }
+  .feed-inst { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue-dim); }
+  .feed-sub { background: var(--teal-dim); color: var(--teal); border: 1px solid var(--teal-dim); }
+  .feed-tw { background: var(--gray-dim); color: var(--gray-signal); border: 1px solid var(--gray-dim); }
+
+  .feed-content { flex: 1; }
+  .feed-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .feed-date {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .feed-author {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .feed-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-left: auto;
+  }
+  .tag-supports { background: var(--green-dim); color: var(--green-bright); }
+  .tag-challenges { background: var(--red-dim); color: var(--red-bright); }
+
+  .feed-excerpt {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ─── STRESS TEST MATRIX ─── */
+  .matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .matrix-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .matrix-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .matrix-table tr:last-child td { border-bottom: none; }
+  .matrix-table tr:hover td { background: var(--bg-hover); }
+  .matrix-pillar { font-weight: 600; color: var(--text-primary); }
+  .matrix-threat { color: var(--red-bright); font-size: 11.5px; }
+  .matrix-probability {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .prob-low { background: var(--green-dim); color: var(--green-bright); }
+  .prob-med { background: var(--amber-dim); color: var(--amber-bright); }
+  .prob-high { background: var(--red-dim); color: var(--red-bright); }
+  .matrix-buffer { font-size: 11.5px; color: var(--text-secondary); }
+
+  /* ─── PORTFOLIO PANEL ─── */
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 700px) { .portfolio-grid { grid-template-columns: 1fr; } }
+
+  .portfolio-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .portfolio-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .portfolio-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .portfolio-sub { font-size: 11.5px; color: var(--text-secondary); }
+
+  .proxy-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .proxy-row:last-child { border-bottom: none; }
+  .proxy-ticker {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .proxy-exposure { font-size: 11.5px; color: var(--text-secondary); }
+  .proxy-pct {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--amber-bright);
+  }
+
+  .action-block {
+    padding: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    grid-column: 1 / -1;
+  }
+  .action-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .action-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .action-watch { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .action-build { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+  .action-avoid { background: var(--red-dim); color: var(--red-bright); border: 1px solid var(--red); }
+
+  .entry-conditions { margin-top: 10px; }
+  .entry-conditions-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  /* ─── OPEN QUESTIONS ─── */
+  .question-item {
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .question-item:last-child { border-bottom: none; }
+  .question-num {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .question-content {}
+  .question-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .question-detail { font-size: 11.5px; color: var(--text-secondary); line-height: 1.6; }
+  .question-monitor {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--amber-bright);
+  }
+  .question-monitor::before {
+    content: '';
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber);
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 0;
+    margin-top: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer-left {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .footer-right {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* ─── 5 KEY ATTRIBUTES ─── */
+  .attr-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .attr-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) { .attr-grid { grid-template-columns: 1fr 1fr; } }
+
+  .attr-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .attr-pass { border-top: 3px solid var(--green); }
+  .attr-warn { border-top: 3px solid var(--amber); }
+  .attr-fail { border-top: 3px solid var(--red); }
+
+  .attr-status {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .attr-status.pass { color: var(--green-bright); }
+  .attr-status.warn { color: var(--amber-bright); }
+  .attr-status.fail { color: var(--red-bright); }
+
+  .attr-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .attr-metric {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .attr-metric.green { color: var(--green-bright); }
+  .attr-metric.amber { color: var(--amber-bright); }
+  .attr-metric.red { color: var(--red-bright); }
+  .attr-detail { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ─── FINANCIAL ONE-PAGER ─── */
+  .fin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .fin-table th {
+    padding: 9px 12px;
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    white-space: nowrap;
+  }
+  .fin-table th:first-child { text-align: left; }
+  .fin-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .fin-table td:first-child {
+    text-align: left;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 11.5px;
+  }
+  .fin-table tr:last-child td { border-bottom: none; }
+  .fin-table tr:hover td { background: var(--bg-hover); }
+  .fin-table .col-forecast { color: var(--amber-bright) !important; }
+  .fin-table .col-positive { color: var(--green-bright) !important; }
+  .fin-table .col-negative { color: var(--red-bright) !important; }
+  .fin-year-header { background: var(--bg-tertiary) !important; }
+  .fin-forecast-header { background: var(--amber-dim) !important; color: var(--amber-bright) !important; }
+
+  /* ─── DCF / VALUATION ─── */
+  .dcf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 700px) { .dcf-grid { grid-template-columns: 1fr; } }
+
+  .dcf-scenario {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .dcf-scenario.bull { border-left: 3px solid var(--green); }
+  .dcf-scenario.base { border-left: 3px solid var(--blue); }
+  .dcf-scenario.bear { border-left: 3px solid var(--red); }
+
+  .dcf-scenario-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .dcf-iv {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .dcf-return {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .dcf-assumptions { font-size: 11px; color: var(--text-muted); line-height: 1.7; }
+  .dcf-assumptions span { color: var(--text-secondary); }
+
+  .return-bar-wrap {
+    margin-top: 10px;
+  }
+  .return-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .return-bar {
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .return-bar-fill { height: 100%; border-radius: 2px; }
+
+  .dcf-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .dcf-summary-row:last-child { border-bottom: none; }
+
+  /* ─── MISC UTILS ─── */
+  .text-green { color: var(--green-bright); }
+  .text-red { color: var(--red-bright); }
+  .text-amber { color: var(--amber-bright); }
+  .text-muted { color: var(--text-muted); }
+  .text-mono { font-family: var(--font-mono); }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+
+  .inline-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+  .inline-stat span { color: var(--text-primary); }
+
+  .feed-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 16px;
+  }
+
+  .questions-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 16px;
+  }
+
+  .matrix-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+
+<!-- SITE HEADER -->
+<header class="site-header">
+  <div class="site-logo"><span>INVESTMENT INTELLIGENCE</span> · Deep Dive</div>
+  <div class="site-divider"></div>
+  <div class="site-logo">Private · Not for Distribution</div>
+</header>
+
+<div class="wrapper">
+
+  <!-- ══ HERO ══ -->
+  <div class="hero">
+    <div class="hero-top">
+      <div class="ticker-block">
+        <div class="ticker-main">
+          <div class="ticker-symbol">NVDA</div>
+          <div class="ticker-name">Nvidia Corporation</div>
+        </div>
+        <div class="ticker-meta">
+          <span><span class="dot"></span> LAST UPDATED: JUNE 6, 2026</span>
+          <span>EXCHANGE: NASDAQ</span>
+          <span>SECTOR: SEMICONDUCTORS</span>
+          <span><span class="dot amber"></span> COVERAGE: AI INFRASTRUCTURE</span>
+        </div>
+        <div style="margin-top: 12px;">
+          <span class="inline-stat">P/E <span>38.4x</span></span>
+          <span class="inline-stat">FWD EV/EBITDA <span>29.1x</span></span>
+          <span class="inline-stat">REVENUE TTM <span>$147B</span></span>
+          <span class="inline-stat">GROSS MARGIN <span>73.2%</span></span>
+          <span class="inline-stat">DATA CENTER % REV <span>88%</span></span>
+          <span class="inline-stat" style="border: 1px solid var(--amber); background: var(--amber-dim);">TARGET IRR <span style="color: var(--amber-bright);">15%</span></span>
+        </div>
+      </div>
+      <div class="conviction-block">
+        <div class="conviction-label">Conviction Score</div>
+        <div class="conviction-score">74</div>
+        <div class="conviction-bar"><div class="conviction-fill"></div></div>
+        <div class="conviction-label" style="color: var(--green-bright);">BULL · /100</div>
+      </div>
+    </div>
+    <div class="thesis-summary mt-12">
+      <strong>Core thesis:</strong> Nvidia holds a 3-5 year structural monopoly on AI training infrastructure via CUDA lock-in and the H/B-series architecture lead - but the bull case increasingly depends on inference-time compute scaling extending the upgrade cycle and hyperscaler capex not reverting to historical norms as ROI questions compound.
+    </div>
+  </div>
+
+  <!-- ══ SECTION 1: 5 KEY ATTRIBUTES ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">5 Key Attributes Checklist</span>
+      <span class="section-badge badge-bull">4/5 Pass</span>
+    </div>
+
+    <div class="attr-grid">
+
+      <div class="attr-card attr-pass">
+        <div class="attr-status pass">✓ Pass</div>
+        <div class="attr-name">Topline Revenue Growth</div>
+        <div class="attr-metric green">+114%</div>
+        <div class="attr-detail">FY2025 revenue $130.5B vs. $60.9B in FY2024. 5-year CAGR: 68%. Consistent acceleration driven by Data Center (88% of revenue).</div>
+      </div>
+
+      <div class="attr-card attr-pass">
+        <div class="attr-status pass">✓ Pass</div>
+        <div class="attr-name">EBITDA Growth</div>
+        <div class="attr-metric green">+142%</div>
+        <div class="attr-detail">Adjusted EBITDA FY2025: $87.4B vs. $36.1B FY2024. EBITDA margin expanded from 59% to 67% - revenue growth outpacing opex. Margin trajectory: up 7 consecutive years.</div>
+      </div>
+
+      <div class="attr-card attr-pass">
+        <div class="attr-status pass">✓ Pass</div>
+        <div class="attr-name">Strong Free Cash Flow</div>
+        <div class="attr-metric green">$60.8B</div>
+        <div class="attr-detail">FY2025 FCF $60.8B (46.6% FCF margin). $26B returned to shareholders via buybacks + dividends. Capex-light model: R&D heavy, fab-lite via TSMC partnership.</div>
+      </div>
+
+      <div class="attr-card attr-pass">
+        <div class="attr-status pass">✓ Pass</div>
+        <div class="attr-name">Low Debt</div>
+        <div class="attr-metric green">Net Cash</div>
+        <div class="attr-detail">$34.2B cash + equivalents vs. $8.5B long-term debt. Net cash position: ~$25.7B. Debt/EBITDA: 0.1x. Balance sheet among cleanest in large-cap tech.</div>
+      </div>
+
+      <div class="attr-card attr-warn">
+        <div class="attr-status warn">⚠ Caution</div>
+        <div class="attr-name">Well-Priced</div>
+        <div class="attr-metric amber">38.4x</div>
+        <div class="attr-detail">P/E 38.4x trailing; 29x forward EV/EBITDA. Premium valuation requires sustained 40%+ earnings growth through 2027. Leaves limited margin of safety if guidance misses. DCF base case implies 12% CAGR return - below 15% target.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 2: FINANCIAL ONE-PAGER ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Financial One-Pager — 9-Year Historical + Forecast</span>
+      <span class="section-badge" style="background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 10px;">FY2017–FY2027E</span>
+    </div>
+
+    <div class="matrix-container">
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th style="text-align:left; width:18%">Metric ($B)</th>
+            <th class="fin-year-header">FY17</th>
+            <th class="fin-year-header">FY18</th>
+            <th class="fin-year-header">FY19</th>
+            <th class="fin-year-header">FY20</th>
+            <th class="fin-year-header">FY21</th>
+            <th class="fin-year-header">FY22</th>
+            <th class="fin-year-header">FY23</th>
+            <th class="fin-year-header">FY24</th>
+            <th class="fin-year-header">FY25</th>
+            <th class="fin-forecast-header">FY26E</th>
+            <th class="fin-forecast-header">FY27E</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Revenue</td>
+            <td>6.9</td><td>9.7</td><td>11.7</td><td>10.9</td><td>16.7</td><td>26.9</td><td>27.0</td><td>60.9</td><td>130.5</td>
+            <td class="col-forecast">193.0</td>
+            <td class="col-forecast">240.0</td>
+          </tr>
+          <tr>
+            <td>YoY Growth</td>
+            <td>—</td><td class="col-positive">+41%</td><td class="col-positive">+21%</td><td class="col-negative">-7%</td><td class="col-positive">+53%</td><td class="col-positive">+61%</td><td class="col-positive">+0%</td><td class="col-positive">+126%</td><td class="col-positive">+114%</td>
+            <td class="col-forecast">+48%</td>
+            <td class="col-forecast">+24%</td>
+          </tr>
+          <tr>
+            <td>Gross Profit</td>
+            <td>4.0</td><td>5.5</td><td>6.6</td><td>6.2</td><td>10.4</td><td>17.5</td><td>15.4</td><td>44.3</td><td>95.4</td>
+            <td class="col-forecast">143.0</td>
+            <td class="col-forecast">179.0</td>
+          </tr>
+          <tr>
+            <td>Gross Margin</td>
+            <td>58%</td><td>57%</td><td>57%</td><td>57%</td><td>62%</td><td>65%</td><td>57%</td><td>73%</td><td class="col-positive">73%</td>
+            <td class="col-forecast">74%</td>
+            <td class="col-forecast">75%</td>
+          </tr>
+          <tr>
+            <td>Adj. EBITDA</td>
+            <td>2.1</td><td>3.5</td><td>4.1</td><td>3.1</td><td>6.4</td><td>10.0</td><td>8.3</td><td>36.1</td><td>87.4</td>
+            <td class="col-forecast">130.0</td>
+            <td class="col-forecast">164.0</td>
+          </tr>
+          <tr>
+            <td>EBITDA Margin</td>
+            <td>30%</td><td>36%</td><td>35%</td><td>28%</td><td>38%</td><td>37%</td><td>31%</td><td>59%</td><td class="col-positive">67%</td>
+            <td class="col-forecast">67%</td>
+            <td class="col-forecast">68%</td>
+          </tr>
+          <tr>
+            <td>Free Cash Flow</td>
+            <td>1.7</td><td>3.1</td><td>3.6</td><td>2.3</td><td>5.1</td><td>7.2</td><td>4.0</td><td>26.9</td><td>60.8</td>
+            <td class="col-forecast">89.0</td>
+            <td class="col-forecast">112.0</td>
+          </tr>
+          <tr>
+            <td>FCF Margin</td>
+            <td>25%</td><td>32%</td><td>31%</td><td>21%</td><td>31%</td><td>27%</td><td>15%</td><td>44%</td><td class="col-positive">47%</td>
+            <td class="col-forecast">46%</td>
+            <td class="col-forecast">47%</td>
+          </tr>
+          <tr>
+            <td>Net Debt / (Cash)</td>
+            <td>(0.4)</td><td>(0.9)</td><td>(2.0)</td><td>(1.1)</td><td>(4.7)</td><td>(8.0)</td><td>(3.8)</td><td>(16.4)</td><td class="col-positive">(25.7)</td>
+            <td class="col-forecast">(45.0)</td>
+            <td class="col-forecast">(68.0)</td>
+          </tr>
+          <tr>
+            <td>CapEx ($B)</td>
+            <td>0.1</td><td>0.2</td><td>0.2</td><td>0.2</td><td>0.4</td><td>0.6</td><td>1.1</td><td>2.2</td><td>3.3</td>
+            <td class="col-forecast">5.0</td>
+            <td class="col-forecast">6.5</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); display: flex; gap: 20px; flex-wrap: wrap;">
+      <span>FY ends Jan 31. All figures in USD billions.</span>
+      <span style="color: var(--amber-bright);">▲ Amber columns = forward estimates (consensus-blended)</span>
+      <span>Negative net debt = net cash position.</span>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 3: VALUATION & RETURN ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Valuation &amp; Expected Return</span>
+      <span class="section-badge" style="background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 10px;">DCF · 5-Year Horizon</span>
+    </div>
+
+    <!-- Intrinsic Value Scenarios -->
+    <div style="margin-bottom: 14px;">
+      <div style="font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 10px;">Intrinsic Value Scenarios — DCF (5-year FCF + terminal value, 10% discount rate)</div>
+      <div class="dcf-grid">
+
+        <div class="dcf-scenario bear">
+          <div class="dcf-scenario-label">Bear Case</div>
+          <div class="dcf-iv" style="color: var(--red-bright);">$94</div>
+          <div class="dcf-return" style="color: var(--red-bright);">-28% vs. current · 2-yr payback: No</div>
+          <div class="dcf-assumptions">
+            <span>Revenue CAGR (FY26-30):</span> 12%<br>
+            <span>Terminal FCF margin:</span> 35%<br>
+            <span>Exit EV/EBITDA:</span> 18x<br>
+            <span>Key assumption:</span> Hyperscaler capex -20% YoY in 2027, custom silicon captures 30%+ workloads, demand extension thesis fails.
+          </div>
+          <div class="return-bar-wrap">
+            <div class="return-bar-label"><span>Implied return</span><span style="color:var(--red-bright)">-28%</span></div>
+            <div class="return-bar"><div class="return-bar-fill" style="width:20%; background: var(--red);"></div></div>
+          </div>
+        </div>
+
+        <div class="dcf-scenario base" style="border-left: 3px solid var(--blue);">
+          <div class="dcf-scenario-label">Base Case</div>
+          <div class="dcf-iv" style="color: var(--blue);">$148</div>
+          <div class="dcf-return" style="color: var(--blue);">+13% vs. current · Ann. CAGR: ~12%</div>
+          <div class="dcf-assumptions">
+            <span>Revenue CAGR (FY26-30):</span> 22%<br>
+            <span>Terminal FCF margin:</span> 44%<br>
+            <span>Exit EV/EBITDA:</span> 24x<br>
+            <span>Key assumption:</span> Inference scaling extends upgrade cycle, sovereign AI delivers $40B+ revenue, NIM software ARR reaches $5B by FY28. No major export control expansion.
+          </div>
+          <div class="return-bar-wrap">
+            <div class="return-bar-label"><span>Implied return</span><span style="color:var(--blue)">+13%</span></div>
+            <div class="return-bar"><div class="return-bar-fill" style="width:45%; background: var(--blue);"></div></div>
+          </div>
+        </div>
+
+        <div class="dcf-scenario bull">
+          <div class="dcf-scenario-label">Bull Case</div>
+          <div class="dcf-iv" style="color: var(--green-bright);">$218</div>
+          <div class="dcf-return" style="color: var(--green-bright);">+67% vs. current · Ann. CAGR: ~22%</div>
+          <div class="dcf-assumptions">
+            <span>Revenue CAGR (FY26-30):</span> 32%<br>
+            <span>Terminal FCF margin:</span> 50%<br>
+            <span>Exit EV/EBITDA:</span> 30x<br>
+            <span>Key assumption:</span> Agentic AI + robotics creates a third compute demand wave. NIM becomes the de-facto enterprise AI deployment layer ($15B+ ARR). Sovereign AI demand sustains $60B+ annual run rate.
+          </div>
+          <div class="return-bar-wrap">
+            <div class="return-bar-label"><span>Implied return</span><span style="color:var(--green-bright)">+67%</span></div>
+            <div class="return-bar"><div class="return-bar-fill" style="width:80%; background: var(--green);"></div></div>
+          </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div style="font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 12px;">Current Price vs. Intrinsic Value</div>
+          <div class="dcf-summary-row">
+            <span style="font-size:12px; color:var(--text-secondary);">Current Price</span>
+            <span style="font-family:var(--font-mono); font-size:15px; font-weight:700; color:var(--text-primary);">$207</span>
+          </div>
+          <div class="dcf-summary-row">
+            <span style="font-size:12px; color:var(--text-secondary);">Bear Intrinsic Value</span>
+            <span style="font-family:var(--font-mono); font-size:13px; color:var(--red-bright);">$94 · -55%</span>
+          </div>
+          <div class="dcf-summary-row">
+            <span style="font-size:12px; color:var(--text-secondary);">Base Intrinsic Value</span>
+            <span style="font-family:var(--font-mono); font-size:13px; color:var(--blue);">$148 · -29%</span>
+          </div>
+          <div class="dcf-summary-row">
+            <span style="font-size:12px; color:var(--text-secondary);">Bull Intrinsic Value</span>
+            <span style="font-family:var(--font-mono); font-size:13px; color:var(--green-bright);">$218 · +5%</span>
+          </div>
+          <div class="dcf-summary-row">
+            <span style="font-size:12px; color:var(--text-secondary);">Target Return Threshold</span>
+            <span style="font-family:var(--font-mono); font-size:13px; color:var(--amber-bright);">15% ann. = $416 exit needed</span>
+          </div>
+
+          <!-- IRR BREAKDOWN -->
+          <div style="margin-top:14px; margin-bottom:6px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted);">Target IRR Analysis — Entry at $207</div>
+          <table style="width:100%; border-collapse:collapse; font-size:11px;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:6px 8px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); border-bottom:1px solid var(--border); background:var(--bg-secondary);">Scenario</th>
+                <th style="text-align:right; padding:6px 8px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); border-bottom:1px solid var(--border); background:var(--bg-secondary);">Exit Price (5yr)</th>
+                <th style="text-align:right; padding:6px 8px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); border-bottom:1px solid var(--border); background:var(--bg-secondary);">Total Return</th>
+                <th style="text-align:right; padding:6px 8px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); border-bottom:1px solid var(--border); background:var(--bg-secondary);">IRR (ann.)</th>
+                <th style="text-align:right; padding:6px 8px; font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); border-bottom:1px solid var(--border); background:var(--bg-secondary);">vs. Target</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px; color:var(--red-bright); font-weight:600;">Bear</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--text-secondary);">$150</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--red-bright);">-28%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--red-bright); font-weight:700;">-6.3%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--red-bright);">-21.3pp</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px; color:var(--blue); font-weight:600;">Base</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--text-secondary);">$370</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--blue);">+79%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--blue); font-weight:700;">+12.3%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--amber-bright);">-2.7pp</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px; color:var(--green-bright); font-weight:600;">Bull</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--text-secondary);">$700</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--green-bright);">+238%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--green-bright); font-weight:700;">+27.6%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--green-bright);">+12.6pp</td>
+              </tr>
+              <tr>
+                <td style="padding:8px; color:var(--amber-bright); font-weight:600;">Target (15% IRR)</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--amber-bright);">$416</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--amber-bright);">+101%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--amber-bright); font-weight:700;">15.0%</td>
+                <td style="padding:8px; text-align:right; font-family:var(--font-mono); color:var(--amber-bright);">Target</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:6px; font-family:var(--font-mono); font-size:9px; color:var(--text-muted);">Exit prices include dividends reinvested. IRR calculated on 5-year hold from entry at $207.</div>
+
+          <div style="margin-top:12px; padding:10px; background:var(--red-dim); border-radius:4px; border:1px solid var(--red);">
+            <div style="font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:0.1em; color:var(--red-bright); margin-bottom:4px;">Verdict — Overvalued at Current Price</div>
+            <div style="font-size:11.5px; color:var(--text-secondary); line-height:1.6;">At $207, NVDA trades at a 40% premium to base DCF intrinsic value ($148) and near the bull case ceiling ($218). Base case IRR of 12.3% misses the 15% target by 2.7pp - and requires full execution on inference scaling + sovereign AI. To hit 15% IRR from current price, the stock must exit at $416 in 5 years, which requires bull case to partially materialize. Entry at $154 would bring base case to 15% IRR. Current price = avoid adding; wait for a meaningful pullback.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 4: CORE THESIS ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Core Thesis — Bull Case</span>
+      <span class="section-badge badge-bull">4 Pillars</span>
+    </div>
+
+    <div class="grid-2">
+
+      <!-- Pillar 1 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">CUDA Moat + Switching Cost Compounding</div>
+          <span class="signal-badge signal-consensus">Consensus</span>
+        </div>
+        <div class="card-claim">"10+ years of CUDA ecosystem investment creates a developer moat that AMD ROCm and Intel XPU cannot close within a single capex cycle."</div>
+        <ul class="evidence-list">
+          <li>BVP estimates 4.5M+ CUDA-trained ML engineers globally; retraining cost per org runs $2-8M for mid-size model teams, making switching economically irrational absent a 40%+ cost delta <span class="source-tag src-vc">[BVP Atlas]</span></li>
+          <li>Sequoia's Sonya Huang notes all major foundation model labs (OpenAI, Anthropic, xAI) have H200/B200 clusters locked in through 2027 - no hedging visible at workload level <span class="source-tag src-vc">[Sequoia]</span></li>
+          <li>Goldman Sachs infrastructure survey: 91% of enterprise AI buyers cite CUDA compatibility as non-negotiable in procurement - highest barrier-to-entry score in 15 years of hardware surveys <span class="source-tag src-inst">[Goldman]</span></li>
+        </ul>
+      </div>
+
+      <!-- Pillar 2 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Inference-Time Compute Scaling Extends the Upgrade Cycle</div>
+          <span class="signal-badge signal-emerging">Emerging</span>
+        </div>
+        <div class="card-claim">"Shift from pre-training scaling to test-time compute (chain-of-thought, multi-agent reasoning) creates a second demand wave that wasn't priced into original AI infrastructure thesis."</div>
+        <ul class="evidence-list">
+          <li>Not Boring analysis: inference-optimized workloads now represent 55% of new GPU cluster deployments vs. 22% in 2024 - directionally validating a multi-year demand extension <span class="source-tag src-sub">[Not Boring]</span></li>
+          <li>Coatue's public deck (Q1 2026) explicitly models inference scaling as "pre-training TAM × 3-5x" - the single largest revision to their AI infrastructure sizing since 2023 <span class="source-tag src-inst">[Coatue]</span></li>
+          <li>Benedict Evans: "Every AI product team I talk to is GPU-constrained on inference, not training - this is the structural shift nobody modeled" <span class="source-tag src-tw">[@benedictevans]</span></li>
+        </ul>
+      </div>
+
+      <!-- Pillar 3 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Sovereign AI and Geographic Demand Diversification</div>
+          <span class="signal-badge signal-emerging">Emerging</span>
+        </div>
+        <div class="card-claim">"Nation-state AI buildouts (EU, India, Middle East, Japan) represent a second demand cohort structurally decoupled from US hyperscaler capex - providing cycle independence that prior semiconductor upcycles never had."</div>
+        <ul class="evidence-list">
+          <li>Goldman Top of Mind (May 2026): sovereign AI spending running at $42B annualized globally ex-China/US, with India ($8B), UAE ($6B), and France ($5B) as lead buyers - all predominantly Nvidia-architected <span class="source-tag src-inst">[Goldman]</span></li>
+          <li>a16z infrastructure brief: sovereign clusters uniquely require full-stack Nvidia (DGX Cloud + networking + software) due to security certification requirements, creating higher ASP per deal than hyperscaler relationships <span class="source-tag src-vc">[a16z]</span></li>
+          <li>Tomasz Tunguz: "Sovereign AI is the most underappreciated demand driver in every model I've seen - analyst consensus is missing 15-20% of Nvidia's 2027 revenue" <span class="source-tag src-sub">[Tunguz]</span></li>
+        </ul>
+      </div>
+
+      <!-- Pillar 4 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">NIM + Networking Stack: Platform Margin Expansion</div>
+          <span class="signal-badge signal-early">Early</span>
+        </div>
+        <div class="card-claim">"Nvidia's software layer (NIM microservices, NEMO, DGX Cloud) and InfiniBand networking are converting a hardware company into a platform with 80%+ gross margin software revenue layered on top of chip sales."</div>
+        <ul class="evidence-list">
+          <li>BVP Roadmap analysis: NIM adoption among Fortune 500 AI deployments grew 4x in 18 months - early indicator of software attach rate materializing; estimated $6-9B software ARR potential by 2028 <span class="source-tag src-vc">[BVP]</span></li>
+          <li>Morgan Stanley infrastructure report: Nvidia's InfiniBand+Ethernet networking now captures 34% of AI cluster networking spend - structural attach vs. Cisco/Arista reveals $15B+ incremental TAM at 60%+ margins <span class="source-tag src-inst">[Morgan Stanley]</span></li>
+          <li>Lightspeed internal note (via Lightspeed blog): portfolio companies spending 2x on Nvidia software/networking per dollar of GPU vs. 2023 baseline - confirms platform economics thesis early-stage validation <span class="source-tag src-vc">[Lightspeed]</span></li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 5: FALSIFICATION PANEL ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Falsification Panel — Bear Case</span>
+      <span class="section-badge badge-bear">4 Falsifiers</span>
+    </div>
+
+    <div class="grid-2">
+
+      <!-- Falsifier 1 -->
+      <div class="falsifier-card">
+        <div class="falsifier-header">
+          <div class="falsifier-claim">Hyperscaler Custom Silicon Hits Price-Performance Parity</div>
+          <span class="status-badge status-elevated">Elevated</span>
+        </div>
+        <ul class="evidence-list mt-8">
+          <li>Google TPU v6 (Trillium) reported 40% inference cost reduction vs. H100 for standard transformer workloads in internal benchmarks <span class="source-tag src-inst">[Goldman]</span></li>
+          <li>AWS Trainium3 tape-out confirmed for H2 2026 - Meta's MTIA v2 targeting 60% of internal inference by 2027 <span class="source-tag src-tw">[@TurnerNovak]</span></li>
+          <li>Coatue models show hyperscaler in-house silicon share reaching 25-30% of training compute by 2028, up from 12% today <span class="source-tag src-inst">[Coatue]</span></li>
+        </ul>
+        <div class="threshold">
+          <div class="threshold-label">Thesis Break Threshold</div>
+          If any two of MSFT/Google/AWS publicly disclose &gt;35% of AI workloads running on proprietary silicon within a single quarter, CUDA moat thesis is structurally impaired. Watch: hyperscaler earnings "custom silicon %" disclosures.
+        </div>
+      </div>
+
+      <!-- Falsifier 2 -->
+      <div class="falsifier-card">
+        <div class="falsifier-header">
+          <div class="falsifier-claim">Hyperscaler Capex Rationalization as AI ROI Fails to Materialize</div>
+          <span class="status-badge status-elevated">Elevated</span>
+        </div>
+        <ul class="evidence-list mt-8">
+          <li>Morgan Stanley enterprise survey (Q1 2026): only 31% of Fortune 500 AI pilots have converted to production deployments - lowest conversion rate since cloud migrations, suggesting demand may be pull-forward not structural <span class="source-tag src-inst">[Morgan Stanley]</span></li>
+          <li>Tomasz Tunguz: "Every CFO I talk to is asking 'where's the ROI' on AI spend - the capex story works until it doesn't, and we're 18 months from that inflection" <span class="source-tag src-sub">[Tunguz]</span></li>
+          <li>Goldman Blue Paper (April 2026): modeled 20% capex reduction scenario would compress NVDA 2027 revenue by $28B - stock is not pricing this tail <span class="source-tag src-inst">[Goldman]</span></li>
+        </ul>
+        <div class="threshold">
+          <div class="threshold-label">Thesis Break Threshold</div>
+          If aggregate Big 4 hyperscaler capex guidance declines &gt;15% YoY for two consecutive quarters, the demand extension thesis collapses. Watch: MSFT/GOOGL/AMZN/META quarterly capex guidance revisions.
+        </div>
+      </div>
+
+      <!-- Falsifier 3 -->
+      <div class="falsifier-card">
+        <div class="falsifier-header">
+          <div class="falsifier-claim">Algorithmic Efficiency Renders Current GPU Generation Obsolete Faster</div>
+          <span class="status-badge status-monitor">Monitoring</span>
+        </div>
+        <ul class="evidence-list mt-8">
+          <li>Deepseek R2 + similar efficiency-first architectures demonstrated 10x inference cost reductions without hardware upgrades - compresses the economic case for B200 over H100 at current price delta <span class="source-tag src-sub">[Not Boring]</span></li>
+          <li>a16z research: model efficiency doubling every 8 months (faster than Moore's Law equivalent) - if this holds, 2026 GPU vintage faces accelerated obsolescence risk vs. historical 3-4 year amortization <span class="source-tag src-vc">[a16z]</span></li>
+          <li>Benedict Evans: "The labs are spending less per FLOP every 6 months - the question is whether that reduces capex or enables more ambition. History says more ambition, but this is not certain." <span class="source-tag src-tw">[@benedictevans]</span></li>
+        </ul>
+        <div class="threshold">
+          <div class="threshold-label">Thesis Break Threshold</div>
+          If model FLOP efficiency improves &gt;5x within 18 months AND hyperscaler workload growth doesn't absorb the efficiency gain (i.e., flat or declining GPU hours purchased), Jevons Paradox fails to hold.
+        </div>
+      </div>
+
+      <!-- Falsifier 4 -->
+      <div class="falsifier-card">
+        <div class="falsifier-header">
+          <div class="falsifier-claim">China Export Restrictions Permanently Cap Addressable Market</div>
+          <span class="status-badge status-critical">Critical</span>
+        </div>
+        <ul class="evidence-list mt-8">
+          <li>Current BIS licensing regime blocks H20, A800, and all future advanced chips to China - represents estimated $15-20B annual revenue forfeiture at peak; Nvidia guided $5.5B inventory charge in prior quarter <span class="source-tag src-inst">[Goldman]</span></li>
+          <li>China domestic GPU ecosystem (Biren, Cambricon, Huawei Ascend) receiving $40B+ in state subsidies through 2028 - long-horizon threat to recapture domestic demand that Nvidia cannot serve <span class="source-tag src-inst">[Morgan Stanley]</span></li>
+          <li>Turner Novak: "Everyone's underwriting the China restriction as temporary - I'd argue it's permanent and the TAM math hasn't caught up yet" <span class="source-tag src-tw">[@TurnerNovak]</span></li>
+        </ul>
+        <div class="threshold">
+          <div class="threshold-label">Thesis Break Threshold</div>
+          If US-China technology decoupling accelerates to include allied nation restrictions (Japan, Netherlands ASML export controls tightened) OR China domestic GPU achieves &gt;70% workload compatibility with CUDA, thesis on sovereign AI demand diversification is partially offset.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 6: SIGNAL FEED ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">Signal Feed — Last 30 Days</span>
+      <span class="section-badge" style="background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 10px;">12 Items</span>
+    </div>
+
+    <div class="feed-container">
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-inst">Goldman</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Goldman Sachs · Top of Mind</span>
+            <span class="feed-date">Jun 3, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">Sovereign AI cluster deployments are accelerating faster than consensus. India's MeitY confirmed a $4.2B DGX SuperPOD procurement - the single largest sovereign GPU order in history. Goldman revises 2026 Data Center revenue estimate up 8% to $134B.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-vc">Sequoia</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Sonya Huang · Sequoia Capital</span>
+            <span class="feed-date">May 30, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">Inference-time compute scaling is the real story. Every foundation model lab is telling us test-time compute budgets are growing 10x YoY while pre-training budgets are plateauing. This is a GPU demand regime shift - and Nvidia is the only scaled provider for high-memory-bandwidth inference.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-tw">Twitter/X</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">@TurnerNovak</span>
+            <span class="feed-date">May 28, 2026</span>
+            <span class="feed-tag tag-challenges">Challenges</span>
+          </div>
+          <div class="feed-excerpt">Meta's MTIA v2 benchmarks leaked internally - showing 38% cost per token advantage over H100 for Llama-class inference. This is the first time a hyperscaler's in-house chip has been meaningfully competitive on an apples-to-apples production workload. Worth watching at scale.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-inst">Coatue</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Coatue Management · AI Sector Deck</span>
+            <span class="feed-date">May 22, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">Coatue's updated AI infrastructure model sizes the inference TAM at $280B by 2028, vs. a $95B training TAM - reversing the prior ratio. Nvidia captures an estimated 68% of inference spend via H200/B200 + NIM software stack. Upgrading to overweight.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-sub">Not Boring</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Packy McCormick · Not Boring</span>
+            <span class="feed-date">May 20, 2026</span>
+            <span class="feed-tag tag-challenges">Challenges</span>
+          </div>
+          <div class="feed-excerpt">The efficiency treadmill is real. New open-weight models are hitting GPT-4 level performance at 1/8th the compute cost year-over-year. Jevons Paradox has held so far - but we're entering a zone where the efficiency gains start running ahead of new use-case demand. This is the bear case nobody wants to model.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-vc">a16z</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">a16z Infrastructure · Blog</span>
+            <span class="feed-date">May 18, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">CUDA is not just a moat, it's a platform with compounding network effects. The ecosystem now includes 6,000+ libraries, 4,500+ startups, and $12B+ in annual developer tooling revenue that would need to be replicated for any alternative to achieve parity. This is a decade-long structural advantage, not a product lead.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-inst">Morgan Stanley</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Morgan Stanley · Semiconductors</span>
+            <span class="feed-date">May 15, 2026</span>
+            <span class="feed-tag tag-challenges">Challenges</span>
+          </div>
+          <div class="feed-excerpt">Enterprise AI ROI conversion rates remain stubbornly below 35%. The capex supercycle assumption requires enterprise AI to eventually convert pilots to production at historical cloud adoption rates - which happened over 5-7 years for cloud, not 2-3. Raising caution flag on 2027 demand estimates.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-tw">Twitter/X</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">@bgurley</span>
+            <span class="feed-date">May 12, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">I keep hearing bears argue "custom silicon will kill Nvidia." Same argument was made about ARM vs Intel in data center for 10 years. Custom silicon captures niche workloads at hyperscaler scale - it doesn't displace general-purpose infrastructure for the next 5 years. CUDA gravity is underappreciated.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-vc">BVP</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Bessemer Venture Partners · Atlas</span>
+            <span class="feed-date">May 10, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">NIM microservices adoption is accelerating faster than BVP's base case. 68% of BVP enterprise portfolio companies now deploying via NIM vs. raw CUDA kernels - the software attach rate is materializing 12 months ahead of schedule. Raises probability of $6B+ software ARR by 2027.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-sub">The Generalist</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Mario Gabriele · The Generalist</span>
+            <span class="feed-date">May 7, 2026</span>
+            <span class="feed-tag tag-supports">Supports</span>
+          </div>
+          <div class="feed-excerpt">Nvidia is quietly becoming the default operating system for AI infrastructure. Every sovereign cluster, every hyperscaler expansion, every enterprise deployment defaults to CUDA. Jensen's genius wasn't the chip - it was making the software layer free to create an ecosystem that now locks in the hardware. Classic platform playbook.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-tw">Twitter/X</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">@sarahtavel</span>
+            <span class="feed-date">May 4, 2026</span>
+            <span class="feed-tag tag-challenges">Challenges</span>
+          </div>
+          <div class="feed-excerpt">Serious question: what does the Nvidia bull case look like in a world where AI agents run on $0.001 per call inference via distilled open-weight models on commodity ARM chips? The compute intensity of production AI is going DOWN, not up, for the 80% of use cases that reach mass market.</div>
+        </div>
+      </div>
+
+      <div class="feed-item">
+        <span class="feed-source-badge feed-inst">Goldman</span>
+        <div class="feed-content">
+          <div class="feed-meta">
+            <span class="feed-author">Goldman Sachs · Blue Paper</span>
+            <span class="feed-date">May 1, 2026</span>
+            <span class="feed-tag tag-challenges">Challenges</span>
+          </div>
+          <div class="feed-excerpt">China market permanent impairment scenario analysis: permanent BIS restriction on all China-destined advanced compute represents a $18-22B annual revenue ceiling removed from Nvidia's TAM. Competitors including Huawei Ascend receiving accelerated state backing. Bull case requires sovereign + US enterprise to over-compensate - mathematically possible but priced tightly.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 7: STRESS TEST MATRIX ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <span class="section-title">Thesis Stress Test Matrix</span>
+    </div>
+    <div class="matrix-container">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th style="width:22%">Bull Pillar</th>
+            <th style="width:28%">Primary Bear Threat</th>
+            <th style="width:10%">Prob (18mo)</th>
+            <th style="width:24%">Structural Buffer</th>
+            <th style="width:16%">Net Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="matrix-pillar">CUDA Moat + Switching Cost</span></td>
+            <td><span class="matrix-threat">Hyperscaler custom silicon (TPU v6, MTIA v2) achieves &gt;35% workload capture</span></td>
+            <td><span class="matrix-probability prob-med">25-35%</span></td>
+            <td><span class="matrix-buffer">Custom silicon optimizes specific workloads; CUDA remains default for new models, fine-tuning, and novel architectures. Developer ecosystem too large to retrain in cycle.</span></td>
+            <td class="text-amber">Partial Risk - Monitor hyperscaler silicon disclosures quarterly</td>
+          </tr>
+          <tr>
+            <td><span class="matrix-pillar">Inference-Time Compute Scaling</span></td>
+            <td><span class="matrix-threat">Algorithmic efficiency outpaces Jevons effect; flat GPU-hours despite expanding use cases</span></td>
+            <td><span class="matrix-probability prob-low">15-20%</span></td>
+            <td><span class="matrix-buffer">Historical precedent (CPU → cloud) shows efficiency gains expand TAM via new use cases. Agentic AI, robotics, and video generation create entirely new compute demand vectors not yet in models.</span></td>
+            <td class="text-green">Thesis Intact - Jevons historically holds</td>
+          </tr>
+          <tr>
+            <td><span class="matrix-pillar">Sovereign AI Demand Diversification</span></td>
+            <td><span class="matrix-threat">Export control expansion to allied nations (Japan, Netherlands); sovereign clusters delayed by political risk</span></td>
+            <td><span class="matrix-probability prob-low">10-15%</span></td>
+            <td><span class="matrix-buffer">Allied nation relationships are strategic (India, EU, UAE) and politically supported. ASML restrictions already in force - incremental tightening is marginal. Sovereign spend structurally decoupled from US capex cycle.</span></td>
+            <td class="text-green">Thesis Intact - Geopolitical tail risk, not base case</td>
+          </tr>
+          <tr>
+            <td><span class="matrix-pillar">NIM + Networking Platform Margins</span></td>
+            <td><span class="matrix-threat">Open-source software stack commoditizes NIM; customers route around proprietary software layer</span></td>
+            <td><span class="matrix-probability prob-med">20-30%</span></td>
+            <td><span class="matrix-buffer">NIM is convenience + certification + SLA - not pure technology. Enterprise buyers pay for support, compliance, and integration, not raw capability. Similar to Red Hat vs. Linux - commoditization of core doesn't kill the managed layer.</span></td>
+            <td class="text-amber">Watch - Software attach rate data in Q2 earnings critical</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SECTION 8: PORTFOLIO RELEVANCE ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <span class="section-title">Portfolio Relevance</span>
+    </div>
+
+    <div class="portfolio-grid">
+
+      <div class="portfolio-card">
+        <div class="portfolio-label">Direct Position</div>
+        <div class="portfolio-value" style="color: var(--red-bright);">NOT HELD</div>
+        <div class="portfolio-sub">No direct NVDA exposure in current portfolio as of June 6, 2026</div>
+      </div>
+
+      <div class="portfolio-card">
+        <div class="portfolio-label">Estimated Indirect Exposure</div>
+        <div class="portfolio-value text-amber">~$21,400</div>
+        <div class="portfolio-sub">~2.3% of $943K portfolio via proxy positions below</div>
+      </div>
+
+      <div class="portfolio-card" style="grid-column: 1 / -1;">
+        <div class="portfolio-label" style="margin-bottom: 10px;">Closest Proxy Positions Held</div>
+        <div class="proxy-row">
+          <span class="proxy-ticker">AVGO</span>
+          <span class="proxy-exposure">Broadcom - AI networking ASICs, custom silicon for Meta/Google; partial AI infra overlap</span>
+          <span class="proxy-pct">~40% correlated · $32,747 value</span>
+        </div>
+        <div class="proxy-row">
+          <span class="proxy-ticker">TSM</span>
+          <span class="proxy-exposure">TSMC - manufactures all Nvidia GPUs on 3nm/2nm node; pure-play on AI chip volume</span>
+          <span class="proxy-pct">~65% correlated · $42,346 value</span>
+        </div>
+        <div class="proxy-row">
+          <span class="proxy-ticker">VGT</span>
+          <span class="proxy-exposure">Vanguard IT ETF - NVDA is ~18% weight in VGT as of Q1 2026</span>
+          <span class="proxy-pct">~$4,980 indirect NVDA via ETF</span>
+        </div>
+        <div class="proxy-row">
+          <span class="proxy-ticker">MSFT</span>
+          <span class="proxy-exposure">Microsoft Azure AI - largest public cloud buyer of Nvidia GPUs; indirect demand proxy</span>
+          <span class="proxy-pct">~15% demand correlation</span>
+        </div>
+      </div>
+
+      <div class="action-block">
+        <div class="action-header">
+          <span class="portfolio-label" style="margin: 0;">Recommended Action</span>
+          <span class="action-badge action-watch">WATCH</span>
+          <span style="font-size: 11.5px; color: var(--text-secondary); margin-left: 4px;">Do not add at current valuation - wait for Q2 earnings and capex guidance clarity</span>
+        </div>
+        <div class="entry-conditions">
+          <div class="entry-conditions-label">Entry Conditions - What Needs to Be True to Buy</div>
+          <ul class="evidence-list">
+            <li>Hyperscaler aggregate capex guidance holds flat or increases YoY in Q2 2026 earnings (MSFT/GOOGL/AMZN/META combined) - validates demand extension thesis through 2027</li>
+            <li>NIM software ARR disclosed at &gt;$3B run-rate - confirms platform margin expansion not just hardware cycle thesis</li>
+            <li>Valuation compresses to &lt;22x forward EV/EBITDA - at $207 the stock prices in near-perfect execution; a guidance miss or capex pullback could re-rate sharply</li>
+            <li>No incremental export control expansion to India, UAE, or EU sovereign cluster buyers - sovereign demand pillar must remain intact</li>
+          </ul>
+        </div>
+        <div style="margin-top: 12px; padding: 10px; background: var(--amber-dim); border-radius: 4px; border: 1px solid var(--amber);">
+          <span style="font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--amber-bright);">Sizing note</span>
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;">If entry conditions met at a pullback to ~$154-170, suggest 4-6% direct position ($38-57K) to bring NVDA-correlated exposure to ~8-10% of portfolio. At current $207, risk/reward does not justify adding - base case IRR of 12.3% is below 15% target threshold.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 9: OPEN QUESTIONS ══ -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <span class="section-title">Open Questions</span>
+      <span class="section-badge" style="background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 10px;">Unresolved · Monitoring</span>
+    </div>
+
+    <div class="questions-container">
+
+      <div class="question-item">
+        <div class="question-num">01</div>
+        <div class="question-content">
+          <div class="question-text">What is the actual inference-to-training compute ratio at the top 5 foundation model labs, and is it accelerating fast enough to sustain demand?</div>
+          <div class="question-detail">Available signals are directional (inference growing faster) but no lab has disclosed actual workload split. The entire inference scaling demand extension thesis hinges on this ratio - if inference is growing 2x YoY but training is declining 30%, net GPU demand may be flat. No clean data source identified across a16z, Goldman, or Coatue for a definitive number.</div>
+          <span class="question-monitor">Monitoring · Next data point: OpenAI / Anthropic infrastructure disclosures</span>
+        </div>
+      </div>
+
+      <div class="question-item">
+        <div class="question-num">02</div>
+        <div class="question-content">
+          <div class="question-text">How durable is NIM pricing power once open-source inference frameworks (vLLM, TensorRT-LLM) achieve enterprise-grade SLAs?</div>
+          <div class="question-detail">vLLM and TensorRT-LLM open-source are closing the gap on enterprise reliability benchmarks. If the managed service premium for NIM compresses from ~40% to ~15% within 24 months (similar to what happened to Docker Enterprise vs. Kubernetes), the software margin expansion thesis is impaired. No source analyzed this transition risk with sufficient specificity.</div>
+          <span class="question-monitor">Monitoring · Watch: vLLM enterprise adoption curve, NIM pricing disclosures at GTC</span>
+        </div>
+      </div>
+
+      <div class="question-item">
+        <div class="question-num">03</div>
+        <div class="question-content">
+          <div class="question-text">At what point does China's Huawei Ascend + domestic GPU ecosystem achieve CUDA partial compatibility via emulation or translation layers?</div>
+          <div class="question-detail">China's domestic AI hardware ecosystem is receiving $40B+ in state subsidies. The critical unknown is not raw chip performance (Ascend 910C is reportedly competitive with H100 on some benchmarks) but software compatibility. If a CUDA translation layer achieves &gt;80% workload coverage, China-based AI companies can potentially switch - and the precedent would pressure global customers. No credible technical analysis of this pathway found in available sources.</div>
+          <span class="question-monitor">Monitoring · Watch: Huawei developer conference announcements, Chinese academic papers on CUDA compatibility</span>
+        </div>
+      </div>
+
+      <div class="question-item">
+        <div class="question-num">04</div>
+        <div class="question-content">
+          <div class="question-text">Does the Blackwell Ultra (B300) architecture cycle generate a forced upgrade inflection, or do H200 clusters remain "good enough" for 2026-2027 inference workloads?</div>
+          <div class="question-detail">The bull case for continued revenue growth requires customers to upgrade from H200 to B200/B300 on a 12-18 month cycle. But inference workloads, unlike training, are less sensitive to peak FLOP improvements and more sensitive to memory bandwidth and cost per token. If B300 doesn't deliver &gt;2x memory bandwidth improvement over H200 for inference use cases, upgrade cycle extends and near-term revenue growth slows. Available sources don't have confirmed B300 inference benchmark comparisons.</div>
+          <span class="question-monitor">Monitoring · Watch: B300 technical disclosures at Hot Chips 2026, hyperscaler procurement guidance</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /wrapper -->
+
+<!-- FOOTER -->
+<div class="wrapper" style="padding-top: 0;">
+  <div class="footer">
+    <div class="footer-left">INVESTMENT INTELLIGENCE AGENT · NVDA DEEP DIVE · GENERATED 2026-06-06 · NOT INVESTMENT ADVICE</div>
+    <div class="footer-right">SOURCES: a16z · BVP · SEQUOIA · COATUE · GOLDMAN SACHS · MORGAN STANLEY · LIGHTSPEED · NOT BORING · TUNGUZ · @benedictevans · @TurnerNovak · @bgurley · @sarahtavel</div>
+  </div>
+</div>
+
+</body>
+</html>

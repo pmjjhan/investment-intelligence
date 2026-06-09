@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}Top 10 Conviction | Investment Intelligence{% endblock %}
+
+{% block extra_style %}
+  .page-header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .page-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .table-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .data-table tbody tr[onclick]:hover { background: var(--bg-hover); }
+
+  .rank-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 24px;
+    text-align: center;
+  }
+  .ticker-cell { display: flex; flex-direction: column; gap: 2px; }
+  .ticker-sym {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+  .ticker-name-sm { font-size: 11px; color: var(--text-muted); }
+  .held-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+  .held-empty {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+  }
+  .price-cell {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+  .cameron-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .cam-5 { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+  .cam-4 { background: var(--blue-dim);  color: var(--blue);         border: 1px solid var(--blue); }
+  .cam-3 { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .cam-low { background: var(--red-dim); color: var(--red-bright);   border: 1px solid var(--red); }
+
+  .irr-cell {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .irr-pos { color: var(--green-bright); }
+  .irr-neg { color: var(--red-bright); }
+
+  .action-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .action-strong-buy { background: #1a4a1a; color: #56d364; border: 1px solid #3fb950; }
+  .action-add        { background: var(--green-dim); color: var(--green); border: 1px solid #2d5a2d; }
+  .action-hold       { background: var(--blue-dim);  color: var(--blue);  border: 1px solid var(--blue); }
+  .action-dip        { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .action-watch      { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* ── Sector filter chips ── */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .filter-chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .filter-chip:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .filter-chip.active {
+    background: var(--blue-dim);
+    color: var(--blue);
+    border-color: var(--blue);
+  }
+
+  /* ── Archive drawer ── */
+  .archive-drawer {
+    margin-bottom: 20px;
+  }
+  .archive-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .archive-dates {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .archive-dates::-webkit-scrollbar { height: 3px; }
+  .archive-dates::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .archive-link {
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .archive-link:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .archive-link.current { background: var(--amber-dim); color: var(--amber-bright); border-color: var(--amber); }
+
+  /* Hide filtered rows */
+  tr.hidden { display: none; }
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+  <div class="page-header">
+    <div class="page-title">Top 10 Conviction Stocks</div>
+    <div class="page-sub">Rational Investing framework - click any row for deep dive</div>
+  </div>
+
+  <!-- Sector filter chips -->
+  <div class="filter-bar">
+    <div class="filter-chip active" data-sector="all">All</div>
+    <div class="filter-chip" data-sector="AI Infrastructure">AI Infrastructure</div>
+    <div class="filter-chip" data-sector="Cloud SaaS">Cloud SaaS</div>
+    <div class="filter-chip" data-sector="Security">Security</div>
+    <div class="filter-chip" data-sector="Ad Tech">Ad Tech</div>
+    <div class="filter-chip" data-sector="Semiconductor">Semiconductor</div>
+    <div class="filter-chip held-filter" data-sector="held">Held Only</div>
+  </div>
+
+  <!-- Archive drawer -->
+  {% if archive_dates %}
+  <div class="archive-drawer">
+    <div class="archive-label">Research Archive</div>
+    <div class="archive-dates">
+      <a href="/top10.html" class="archive-link current">📊 Live</a>
+      {% for d in archive_dates %}
+        {% if d != generated_at %}
+        <a href="/archive/{{ d }}/top10.html" class="archive-link">📁 {{ d }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Ticker</th>
+          <th>Held?</th>
+          <th>Price</th>
+          <th>Cameron Score</th>
+          <th>1yr IRR (Base)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if stocks %}
+          {% for stock in stocks %}
+          <tr onclick="window.location='/stock/{{ stock.ticker }}.html'"
+              style="cursor:pointer;"
+              data-sector="{{ stock.thesis_tag | default('Other') }}"
+              data-held="{{ 'true' if stock.held else 'false' }}">
+            <td data-label="#" class="rank-num">{{ stock.rank }}</td>
+            <td data-label="Ticker">
+              <div class="ticker-cell">
+                <span class="ticker-sym">{{ stock.ticker }}</span>
+                <span class="ticker-name-sm">{{ stock.name }}</span>
+              </div>
+            </td>
+            <td data-label="Held?">
+              {% if stock.held %}
+                <span class="held-dot" title="In portfolio"></span>
+              {% else %}
+                <span class="held-empty" title="Not held"></span>
+              {% endif %}
+            </td>
+            <td data-label="Price" class="price-cell">
+              ${{ "%.2f" | format(stock.price | float) }}
+            </td>
+            <td data-label="Cameron Score">
+              {% set cs = stock.cameron_score | int %}
+              <span class="cameron-badge {% if cs == 5 %}cam-5{% elif cs == 4 %}cam-4{% elif cs == 3 %}cam-3{% else %}cam-low{% endif %}">
+                {{ cs }}/5
+              </span>
+            </td>
+            <td data-label="1yr IRR (Base)" class="irr-cell">
+              {% if stock.irr_base is defined %}
+                {% set irr = stock.irr_base | float %}
+                <span class="{% if irr >= 0 %}irr-pos{% else %}irr-neg{% endif %}">
+                  {% if irr >= 0 %}+{% endif %}{{ "%.0f" | format(irr) }}%
+                </span>
+              {% else %}
+                <span style="color:var(--text-muted);">-</span>
+              {% endif %}
+            </td>
+            <td data-label="Action">
+              {% set action = stock.action | upper %}
+              {% if action == "STRONG BUY" %}
+                <span class="action-badge action-strong-buy">Strong Buy</span>
+              {% elif action == "ADD" %}
+                <span class="action-badge action-add">Add</span>
+              {% elif action == "HOLD" %}
+                <span class="action-badge action-hold">Hold</span>
+              {% elif action == "BUY ON DIP" %}
+                <span class="action-badge action-dip">Buy on Dip</span>
+              {% else %}
+                <span class="action-badge action-watch">Watch</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px;">
+              No data available. Run the pipeline to generate top10.json.
+            </td>
+          </tr>
+        {% endif %}
+        <!-- Empty state when filter returns no results -->
+        <tr id="empty-filter-row" style="display:none;">
+          <td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">
+            No stocks match this filter.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  // ── Sector + held filter ──────────────────────────────────────────
+  const chips = document.querySelectorAll('.filter-chip');
+  const rows  = document.querySelectorAll('tbody tr[data-sector]');
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      const selected = chip.dataset.sector;
+
+      rows.forEach(row => {
+        if (selected === 'all') {
+          row.classList.remove('hidden');
+        } else if (selected === 'held') {
+          row.classList.toggle('hidden', row.dataset.held !== 'true');
+        } else {
+          row.classList.toggle('hidden', row.dataset.sector !== selected);
+        }
+      });
+
+      const visible = [...rows].filter(r => !r.classList.contains('hidden'));
+      const emptyRow = document.getElementById('empty-filter-row');
+      if (emptyRow) emptyRow.style.display = visible.length === 0 ? '' : 'none';
+    });
+  });
+</script>
+{% endblock extra_script %}

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Investment Intelligence{% endblock %}</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #1c2128;
+      --bg-card: #21262d;
+      --bg-hover: #2d333b;
+      --border: #30363d;
+      --border-bright: #484f58;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --green: #3fb950;
+      --green-dim: #1a3a21;
+      --green-bright: #56d364;
+      --red: #f85149;
+      --red-dim: #3a1a1a;
+      --red-bright: #ff7b72;
+      --amber: #d29922;
+      --amber-dim: #3a2d0a;
+      --amber-bright: #f0a421;
+      --blue: #58a6ff;
+      --blue-dim: #1a2a3a;
+      --purple: #bc8cff;
+      --purple-dim: #2d1f4a;
+      --teal: #39d4c8;
+      --teal-dim: #0d2e2d;
+      --font-mono: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    .site-nav {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .nav-logo {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 12px 0;
+      margin-right: 24px;
+      white-space: nowrap;
+    }
+    .nav-logo span { color: var(--blue); }
+    .nav-links {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+    }
+    .nav-links a {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 14px;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-links a.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--blue);
+    }
+    .nav-icon { font-size: 14px; line-height: 1; }
+    .nav-updated {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    /* ── WRAPPER ── */
+    .wrapper {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .section { margin-bottom: 36px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      transition: border-color 0.15s;
+    }
+    .card:hover { border-color: var(--border-bright); }
+
+    /* ── BADGES ── */
+    .badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 3px 7px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .badge-green { background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+    .badge-red   { background: var(--red-dim);   color: var(--red-bright);   border: 1px solid var(--red); }
+    .badge-amber { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+    .badge-blue  { background: var(--blue-dim);  color: var(--blue);         border: 1px solid var(--blue); }
+    .badge-gray  { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* ── GRIDS ── */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+    /* ── TABLES ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .data-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover { background: var(--bg-hover); }
+    .data-table tbody tr[onclick] { cursor: pointer; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .wrapper { padding: 16px 16px 48px; }
+      .nav-inner { padding: 0 16px; }
+      .nav-logo { display: none; }
+      .nav-updated { display: none; }
+
+      /* Stacked table cells on mobile */
+      .data-table thead { display: none; }
+      .data-table tbody tr {
+        display: block;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin-bottom: 8px;
+        padding: 8px;
+      }
+      .data-table tbody tr:hover { background: var(--bg-card); }
+      .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding: 6px 4px;
+        font-size: 12px;
+      }
+      .data-table td:last-child { border-bottom: none; }
+      .data-table td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-right: 8px;
+      }
+    }
+
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="nav-inner">
+    <div class="nav-logo"><span>II</span> Intelligence</div>
+    <div class="nav-links">
+      <a href="/index.html" data-path="index">
+        <span class="nav-icon">📊</span> Digest
+      </a>
+      <a href="/top10.html" data-path="top10">
+        <span class="nav-icon">🏆</span> Top 10
+      </a>
+      <a href="/trade_review.html" data-path="trade_review">
+        <span class="nav-icon">📈</span> Trades
+      </a>
+      <a href="/archive/index.html" data-path="archive">
+        <span class="nav-icon">🗂</span> Archive
+      </a>
+    </div>
+    {% if generated_at is defined and generated_at %}
+    <div class="nav-updated">Updated {{ generated_at }}</div>
+    {% endif %}
+  </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<script>
+  // Auto-detect active nav item from current URL
+  (function () {
+    var path = window.location.pathname;
+    var links = document.querySelectorAll('.nav-links a[data-path]');
+    links.forEach(function (link) {
+      var key = link.getAttribute('data-path');
+      var isActive = false;
+      if (key === 'index' && (path === '/' || path === '/index.html')) {
+        isActive = true;
+      } else if (key !== 'index' && path.includes(key)) {
+        isActive = true;
+      }
+      if (isActive) link.classList.add('active');
+    });
+  })();
+</script>
+
+{% block extra_script %}{% endblock %}
+</body>
+</html>

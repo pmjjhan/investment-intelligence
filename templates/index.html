@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block title %}Thesis Digest | Investment Intelligence{% endblock %}
+
+{% block extra_style %}
+  .hero-scores {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: start;
+    padding: 32px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .alignment-block { text-align: center; }
+  .alignment-score {
+    font-family: var(--font-mono);
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .alignment-score.high { color: var(--green-bright); }
+  .alignment-score.mid  { color: var(--amber-bright); }
+  .alignment-score.low  { color: var(--red-bright); }
+  .alignment-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .alignment-bar {
+    width: 80px;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    margin: 8px auto 0;
+    overflow: hidden;
+  }
+  .alignment-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--amber), var(--green));
+  }
+  .hero-right { display: flex; flex-direction: column; gap: 16px; }
+  .actionable-box {
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .actionable-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--green);
+    margin-bottom: 6px;
+  }
+  .actionable-text { font-size: 13px; color: var(--text-primary); line-height: 1.6; }
+  .gaps-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .gaps-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+  .gaps-list { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  .gaps-list li {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    background: var(--amber-dim);
+    color: var(--amber-bright);
+    border: 1px solid var(--amber);
+    border-radius: 10px;
+  }
+
+  /* Thesis cards */
+  .thesis-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .thesis-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .thesis-header:hover { background: var(--bg-hover); }
+  .thesis-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .thesis-claim {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    font-style: italic;
+  }
+  .thesis-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .chevron {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  .thesis-card.open .chevron { transform: rotate(90deg); }
+  .signal-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 7px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .signal-early    { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .signal-emerging { background: var(--blue-dim);  color: var(--blue);         border: 1px solid var(--blue); }
+  .signal-consensus{ background: var(--green-dim); color: var(--green-bright); border: 1px solid var(--green); }
+
+  .thesis-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .thesis-card.open .thesis-body { display: block; }
+  .thesis-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .meta-section-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .evidence-list { list-style: none; }
+  .evidence-list li {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    padding: 3px 0 3px 12px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .evidence-list li::before { content: '›'; position: absolute; left: 0; color: var(--text-muted); }
+  .supports li::before { color: var(--green); }
+  .threatens li::before { color: var(--red); }
+  .source-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+  .source-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--purple-dim);
+    color: var(--purple);
+  }
+
+  @media (max-width: 600px) {
+    .hero-scores { grid-template-columns: 1fr; }
+    .thesis-meta { grid-template-columns: 1fr; }
+  }
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+  <!-- Hero -->
+  <div class="hero-scores">
+    <div class="alignment-block">
+      {% set score = data.portfolio_alignment_score | int %}
+      <div class="alignment-score {% if score >= 70 %}high{% elif score >= 40 %}mid{% else %}low{% endif %}">
+        {{ score }}
+      </div>
+      <div class="alignment-label">Portfolio Alignment</div>
+      <div class="alignment-bar">
+        <div class="alignment-fill" style="width: {{ score }}%;"></div>
+      </div>
+    </div>
+    <div class="hero-right">
+      {% if data.actionable_move %}
+      <div class="actionable-box">
+        <div class="actionable-label">Most Actionable Move This Week</div>
+        <div class="actionable-text">{{ data.actionable_move }}</div>
+      </div>
+      {% endif %}
+      {% if data.top_gaps %}
+      <div class="gaps-box">
+        <div class="gaps-label">Top Portfolio Gaps</div>
+        <ul class="gaps-list">
+          {% for gap in data.top_gaps %}
+          <li>{{ gap }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Thesis Cards -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Structural Theses</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">{{ data.theses | length }} signals</span>
+    </div>
+
+    {% if data.theses %}
+      {% for thesis in data.theses %}
+      <div class="thesis-card" id="thesis-{{ loop.index }}">
+        <div class="thesis-header" onclick="toggleThesis(this.parentElement)">
+          <div>
+            <div class="thesis-name">{{ thesis.name }}</div>
+            <div class="thesis-claim">{{ thesis.claim }}</div>
+          </div>
+          <div class="thesis-right">
+            <span class="signal-badge signal-{{ thesis.signal | lower }}">{{ thesis.signal }}</span>
+            <span class="chevron">›</span>
+          </div>
+        </div>
+        <div class="thesis-body">
+          <div class="thesis-meta">
+            {% if thesis.supports %}
+            <div>
+              <div class="meta-section-title">Supports Holdings</div>
+              <ul class="evidence-list supports">
+                {% for item in thesis.supports %}
+                <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            {% if thesis.threatens %}
+            <div>
+              <div class="meta-section-title">Threatens Holdings</div>
+              <ul class="evidence-list threatens">
+                {% for item in thesis.threatens %}
+                <li>{{ item }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+          {% if thesis.sources %}
+          <div class="source-tags">
+            {% for src in thesis.sources %}
+            <span class="source-tag">{{ src }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--text-muted);padding:24px 0;">No theses available. Run the pipeline to generate data.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  function toggleThesis(card) {
+    card.classList.toggle('open');
+  }
+</script>
+{% endblock %}

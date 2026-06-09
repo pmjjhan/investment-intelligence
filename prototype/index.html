@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thesis Digest - II Intelligence</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.5; }
+
+  .site-nav { background: #161b22; border-bottom: 1px solid #21262d; position: sticky; top: 0; z-index: 100; }
+  .nav-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 4px; height: 44px; }
+  .nav-logo { font-size: 13px; font-weight: 700; color: #f0f6fc; text-decoration: none; letter-spacing: -0.3px; margin-right: 20px; }
+  .nav-link { color: #8b949e; text-decoration: none; font-size: 12px; padding: 12px 10px; border-bottom: 2px solid transparent; display: inline-block; transition: color 0.15s; }
+  .nav-link:hover { color: #c9d1d9; }
+  .nav-link.active { color: #f0f6fc; border-bottom-color: #58a6ff; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #21262d; }
+  .page-header h1 { font-size: 20px; font-weight: 700; color: #f0f6fc; }
+  .page-header-right { text-align: right; }
+  .page-meta { font-size: 11px; color: #8b949e; }
+
+  .top-row { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 20px; }
+  .card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 18px 20px; }
+  .card-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600; }
+
+  .score-display { font-size: 40px; font-weight: 800; color: #f0f6fc; line-height: 1; }
+  .score-display span { font-size: 18px; color: #8b949e; font-weight: 400; }
+  .progress-bar { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; margin: 12px 0 8px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #238636, #3fb950); border-radius: 3px; width: 74%; }
+  .score-desc { font-size: 11px; color: #8b949e; line-height: 1.5; }
+
+  .action-headline { font-size: 16px; font-weight: 700; color: #3fb950; margin-bottom: 6px; }
+  .action-sub { font-size: 12px; color: #8b949e; line-height: 1.6; margin-bottom: 10px; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip-held { background: #0d4429; color: #3fb950; border: 1px solid #238636; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .chip-gap { background: #0c2d6b; color: #58a6ff; border: 1px solid #1f6feb; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+
+  .gaps-section { margin-bottom: 24px; }
+  .gaps-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600; }
+  .gaps-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .gap-chip { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 6px 14px; font-size: 12px; color: #58a6ff; }
+  .gap-chip strong { color: #f0f6fc; }
+
+  .section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+  .section-header h2 { font-size: 13px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+  .legend { display: flex; gap: 14px; margin-left: auto; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8b949e; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .thesis-cards { display: grid; gap: 12px; }
+  details.thesis-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; overflow: hidden; }
+  details.thesis-card[open] { border-color: #30363d; }
+  details.thesis-card summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; align-items: center; gap: 12px; user-select: none; }
+  details.thesis-card summary::-webkit-details-marker { display: none; }
+  details.thesis-card summary:hover { background: #1c2128; }
+
+  .signal-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0; }
+  .signal-early { background: #0d4429; color: #3fb950; border: 1px solid #238636; }
+  .signal-emerging { background: #0c2d6b; color: #58a6ff; border: 1px solid #1f6feb; }
+  .signal-consensus { background: #3d2a00; color: #d29922; border: 1px solid #9e6a03; }
+
+  .thesis-name { font-size: 14px; font-weight: 700; color: #f0f6fc; flex: 1; }
+  .ticker-chips { display: flex; gap: 5px; }
+  .ticker-chip { background: #21262d; border: 1px solid #30363d; border-radius: 3px; padding: 1px 7px; font-size: 11px; color: #c9d1d9; font-weight: 600; }
+  .ticker-chip.held { background: #0d2a0d; border-color: #238636; color: #3fb950; }
+  .source-count { font-size: 11px; color: #8b949e; white-space: nowrap; min-width: 70px; text-align: right; }
+  .expand-icon { color: #8b949e; font-size: 14px; transition: transform 0.2s; flex-shrink: 0; }
+  details[open] .expand-icon { transform: rotate(180deg); }
+
+  .thesis-body { padding: 0 18px 20px; }
+  .divider { height: 1px; background: #21262d; margin-bottom: 16px; }
+  .body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .block-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; }
+  .core-claim { font-size: 12px; color: #c9d1d9; line-height: 1.7; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; }
+  .st-row { display: flex; gap: 8px; font-size: 11px; margin-bottom: 6px; }
+  .st-label { color: #8b949e; min-width: 70px; flex-shrink: 0; }
+  .believe-block { font-size: 11px; color: #c9d1d9; line-height: 1.7; background: #0d1117; border-left: 3px solid #58a6ff; border-radius: 0 6px 6px 0; padding: 10px 12px; }
+  .source-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .source-tag { background: #21262d; border: 1px solid #30363d; border-radius: 3px; padding: 2px 8px; font-size: 10px; color: #8b949e; }
+
+  .green { color: #3fb950; } .amber { color: #d29922; } .red { color: #f85149; } .blue { color: #58a6ff; } .muted { color: #8b949e; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0d1117; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">II Intelligence</a>
+    <a href="index.html" class="nav-link active">Digest</a>
+    <a href="top10.html" class="nav-link">Top 10</a>
+    <a href="trade_review.html" class="nav-link">Trades</a>
+    <a href="archive/index.html" class="nav-link">Archive</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1>Thesis Intelligence</h1>
+    <div class="page-header-right">
+      <div class="page-meta">Last run: 2026-06-08 07:00</div>
+      <div class="page-meta">18 sources &middot; 30-day window</div>
+    </div>
+  </div>
+
+  <div class="top-row">
+    <div class="card">
+      <div class="card-label">Portfolio Alignment Score</div>
+      <div class="score-display">74 <span>/ 100</span></div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <div class="score-desc">Strong alignment on AI distribution moat thesis. Primary gap: no pure-play workflow automation (NOW), no AI security layer (CRWD), and no healthcare exposure.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Most Actionable Move This Week</div>
+      <div class="action-headline">Build NOW position</div>
+      <div class="action-sub">ServiceNow is the clearest pure-play on the Systems of Action thesis - appeared independently across BVP Atlas, Goldman Sachs, and a16z as the #1 workflow-to-agent conversion play. Current price creates a rare entry window below base DCF intrinsic value (~$114 vs. IV ~$145).</div>
+      <div style="font-size:11px;color:#8b949e;margin-bottom:4px;">Current holdings this complements:</div>
+      <div class="chip-row">
+        <span class="chip-held">MSFT</span>
+        <span class="chip-held">CRM</span>
+        <span class="chip-held">GOOGL</span>
+        <span class="chip-gap">NOW (not held - top gap)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gaps-section">
+    <div class="gaps-label">Top 3 Portfolio Gaps</div>
+    <div class="gaps-row">
+      <div class="gap-chip"><strong>NOW</strong> - Systems of Action</div>
+      <div class="gap-chip"><strong>CRWD</strong> - AI Security</div>
+      <div class="gap-chip"><strong>Healthcare</strong> - XLV / sector exposure</div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>Thesis Signals (5)</h2>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>Early Signal</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>Emerging</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div>Consensus</div>
+    </div>
+  </div>
+
+  <div class="thesis-cards">
+
+    <details class="thesis-card">
+      <summary>
+        <span class="signal-badge signal-early">Early Signal</span>
+        <div class="thesis-name">Systems of Action</div>
+        <div class="ticker-chips">
+          <span class="ticker-chip">NOW</span>
+          <span class="ticker-chip held">CRM</span>
+          <span class="ticker-chip held">MSFT</span>
+        </div>
+        <div class="source-count muted">BVP + Goldman + a16z</div>
+        <div class="expand-icon">&#9660;</div>
+      </summary>
+      <div class="thesis-body">
+        <div class="divider"></div>
+        <div class="body-grid">
+          <div>
+            <div class="block-label">Core Claim</div>
+            <div class="core-claim">Workflow SaaS converting from record-keeping to AI agent execution layer. Systems of record (NOW, CRM) are becoming systems of action - enterprises are replacing human task execution with AI agent workflows running on top of existing data models. This is a TAM re-engineering event: budget moves from IT line item to labor replacement, a 10x larger addressable pool.</div>
+          </div>
+          <div>
+            <div class="block-label">Portfolio Alignment</div>
+            <div class="st-row"><span class="st-label">Supports:</span><span class="green">MSFT (Copilot agent layer), CRM (Agentforce), GOOGL (Workspace AI)</span></div>
+            <div class="st-row"><span class="st-label">Threatens:</span><span class="muted">None directly - validates existing AI distribution thesis</span></div>
+            <div class="st-row"><span class="st-label">Gap:</span><span class="blue">NOW is the clearest pure-play - not held, #1 gap</span></div>
+            <div style="margin-top:14px;">
+              <div class="block-label">What to Believe to Act</div>
+              <div class="believe-block">Enterprise AI agent adoption curves faster than CRM adoption in the 2000s. Workflow vendors with proprietary data models (NOW's CMDB) have durable defensibility vs. LLM-layer competitors. Labor replacement budgets are 10x larger than IT software budgets.</div>
+            </div>
+          </div>
+          <div class="body-grid" style="grid-column:1/-1;grid-template-columns:1fr 1fr;gap:18px;display:grid;">
+            <div>
+              <div class="block-label">Sources</div>
+              <div class="source-tags">
+                <span class="source-tag">BVP Atlas</span>
+                <span class="source-tag">Goldman Sachs Blue Paper</span>
+                <span class="source-tag">a16z</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="thesis-card">
+      <summary>
+        <span class="signal-badge signal-early">Early Signal</span>
+        <div class="thesis-name">Custom Silicon Displacement</div>
+        <div class="ticker-chips">
+          <span class="ticker-chip held">AVGO</span>
+          <span class="ticker-chip held">TSM</span>
+          <span class="ticker-chip">NVDA</span>
+        </div>
+        <div class="source-count muted">Sequoia + Goldman + Coatue</div>
+        <div class="expand-icon">&#9660;</div>
+      </summary>
+      <div class="thesis-body">
+        <div class="divider"></div>
+        <div class="body-grid">
+          <div>
+            <div class="block-label">Core Claim</div>
+            <div class="core-claim">Hyperscalers building proprietary XPUs to reduce NVDA dependency at margin. Google TPU v5, AWS Trainium2, Meta MTIA - all designed on AVGO's XPU platform. At inference scale, custom silicon achieves 40-60% cost reduction vs. H100. This is not NVDA replacement for training; it is margin optimization at inference scale that caps NVDA's long-run TAM ceiling.</div>
+          </div>
+          <div>
+            <div class="block-label">Portfolio Alignment</div>
+            <div class="st-row"><span class="st-label">Supports:</span><span class="green">AVGO (XPU designer + networking), TSM (fabrication of all custom chips)</span></div>
+            <div class="st-row"><span class="st-label">Threatens:</span><span class="red">NVDA long-term TAM ceiling (not held - no direct portfolio impact)</span></div>
+            <div class="st-row"><span class="st-label">Gap:</span><span class="blue">NVDA - partially proxied via VGT/QQQM ETF exposure</span></div>
+            <div style="margin-top:14px;">
+              <div class="block-label">What to Believe to Act</div>
+              <div class="believe-block">Inference workloads are the dominant compute cost by 2027. AVGO XPU attach rate expands beyond current 3 major hyperscaler customers. TSM advanced packaging (CoWoS) remains the bottleneck - TSM wins regardless of chip vendor.</div>
+            </div>
+          </div>
+          <div style="grid-column:1/-1;">
+            <div class="block-label">Sources</div>
+            <div class="source-tags">
+              <span class="source-tag">Sequoia (Sonya Huang)</span>
+              <span class="source-tag">Goldman Sachs</span>
+              <span class="source-tag">Coatue</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="thesis-card">
+      <summary>
+        <span class="signal-badge signal-emerging">Emerging</span>
+        <div class="thesis-name">AI Ad Monetization Inflection</div>
+        <div class="ticker-chips">
+          <span class="ticker-chip held">META</span>
+          <span class="ticker-chip held">GOOGL</span>
+          <span class="ticker-chip">APP</span>
+        </div>
+        <div class="source-count muted">Goldman + MS + Coatue</div>
+        <div class="expand-icon">&#9660;</div>
+      </summary>
+      <div class="thesis-body">
+        <div class="divider"></div>
+        <div class="body-grid">
+          <div>
+            <div class="block-label">Core Claim</div>
+            <div class="core-claim">Advantage+ and AI-native ad targeting driving CPM expansion beyond volume growth. Meta Advantage+ CPMs expanding 15-20% while maintaining ROAS improvement. Google AI Overviews re-accelerating search CPMs. The shift from manual campaign management to AI-automated targeting compresses agency margins and expands platform take rates - a structural repricing of attention, not just efficiency.</div>
+          </div>
+          <div>
+            <div class="block-label">Portfolio Alignment</div>
+            <div class="st-row"><span class="st-label">Supports:</span><span class="green">META (Advantage+ leader), GOOGL (AI Overviews + Performance Max)</span></div>
+            <div class="st-row"><span class="st-label">Threatens:</span><span class="red">Traditional media agencies, WPP-class businesses (not held)</span></div>
+            <div class="st-row"><span class="st-label">Gap:</span><span class="blue">APP (AppLovin AXON) - watchlist candidate for AI-native ad tech exposure</span></div>
+            <div style="margin-top:14px;">
+              <div class="block-label">What to Believe to Act</div>
+              <div class="believe-block">AI ad automation is durable - not a one-time CPM lift. Platform moats compound. META's Llama-powered personalization is 2+ years ahead of TikTok and Snap on ad product sophistication.</div>
+            </div>
+          </div>
+          <div style="grid-column:1/-1;">
+            <div class="block-label">Sources</div>
+            <div class="source-tags">
+              <span class="source-tag">Goldman Sachs</span>
+              <span class="source-tag">Morgan Stanley</span>
+              <span class="source-tag">Coatue</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="thesis-card">
+      <summary>
+        <span class="signal-badge signal-emerging">Emerging</span>
+        <div class="thesis-name">Inference Cost Collapse</div>
+        <div class="ticker-chips">
+          <span class="ticker-chip held">MSFT</span>
+          <span class="ticker-chip held">GOOGL</span>
+          <span class="ticker-chip held">AMZN</span>
+        </div>
+        <div class="source-count muted">a16z + Tunguz + Elad Gil</div>
+        <div class="expand-icon">&#9660;</div>
+      </summary>
+      <div class="thesis-body">
+        <div class="divider"></div>
+        <div class="body-grid">
+          <div>
+            <div class="block-label">Core Claim</div>
+            <div class="core-claim">Inference cost per token falling 10x/year enables new application categories. GPT-4 class intelligence is now at GPT-3 2021 prices - enabling always-on AI agents, real-time personalization at consumer scale, and embedding AI into every software workflow without meaningful cost constraint. Software categories previously unprofitable at AI compute cost become viable. This is a TAM expansion event, not just a cost reduction.</div>
+          </div>
+          <div>
+            <div class="block-label">Portfolio Alignment</div>
+            <div class="st-row"><span class="st-label">Supports:</span><span class="green">MSFT (Azure AI volume), GOOGL (GCP + Gemini API), AMZN (Bedrock + Nova)</span></div>
+            <div class="st-row"><span class="st-label">Threatens:</span><span class="amber">Inference cost collapse compresses API margin - but volume expansion wins</span></div>
+            <div class="st-row"><span class="st-label">Gap:</span><span class="blue">Pure-play AI application layer remains a portfolio gap</span></div>
+            <div style="margin-top:14px;">
+              <div class="block-label">What to Believe to Act</div>
+              <div class="believe-block">Cost curves continue at current pace (Jevons paradox: lower cost = more consumption). Cloud hyperscalers capture inference volume economics. Application adoption bottlenecked by cost - removing that bottleneck expands addressable software spend dramatically.</div>
+            </div>
+          </div>
+          <div style="grid-column:1/-1;">
+            <div class="block-label">Sources</div>
+            <div class="source-tags">
+              <span class="source-tag">a16z</span>
+              <span class="source-tag">Tomasz Tunguz</span>
+              <span class="source-tag">Elad Gil</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="thesis-card">
+      <summary>
+        <span class="signal-badge signal-early">Early Signal</span>
+        <div class="thesis-name">Agent Security Emergence</div>
+        <div class="ticker-chips">
+          <span class="ticker-chip">CRWD</span>
+          <span class="ticker-chip held">MSFT</span>
+        </div>
+        <div class="source-count muted">BVP + Lightspeed</div>
+        <div class="expand-icon">&#9660;</div>
+      </summary>
+      <div class="thesis-body">
+        <div class="divider"></div>
+        <div class="body-grid">
+          <div>
+            <div class="block-label">Core Claim</div>
+            <div class="core-claim">AI agents executing actions require new security layer beyond endpoint. Traditional security (signature-based, behavioral) cannot handle AI agents that spawn subprocesses, access credentials, and execute code autonomously. A new category is emerging: agent identity, agent action auditing, and agent privilege management. CRWD Falcon is being extended to cover agent workloads - this is a 3-5 year platform expansion cycle.</div>
+          </div>
+          <div>
+            <div class="block-label">Portfolio Alignment</div>
+            <div class="st-row"><span class="st-label">Supports:</span><span class="green">MSFT (Defender + Sentinel expanding to agent surface area)</span></div>
+            <div class="st-row"><span class="st-label">Threatens:</span><span class="red">Legacy security vendors without AI-native platforms (not held)</span></div>
+            <div class="st-row"><span class="st-label">Gap:</span><span class="blue">CRWD is the primary gap - fills AI security at portfolio level</span></div>
+            <div style="margin-top:14px;">
+              <div class="block-label">What to Believe to Act</div>
+              <div class="believe-block">AI agent deployments scale from pilot to production in 12-18 months, creating security audit requirements. Regulated industries mandate agent action logging. Security budget for AI agents comes from new allocation, not reallocation from existing cybersecurity budget.</div>
+            </div>
+          </div>
+          <div style="grid-column:1/-1;">
+            <div class="block-label">Sources</div>
+            <div class="source-tags">
+              <span class="source-tag">BVP Atlas</span>
+              <span class="source-tag">Lightspeed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Research Archive | Investment Intelligence{% endblock %}
+
+{% block extra_style %}
+  .page-header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .page-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .archive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .archive-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .archive-card:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-hover);
+  }
+  .archive-card.latest {
+    border-color: var(--amber);
+    background: var(--amber-dim);
+  }
+
+  .archive-date {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .archive-card.latest .archive-date { color: var(--amber-bright); }
+
+  .archive-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 2px 7px;
+    border-radius: 10px;
+    align-self: flex-start;
+  }
+  .tag-latest { background: var(--amber-dim); color: var(--amber-bright); border: 1px solid var(--amber); }
+  .tag-archive { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .archive-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .archive-page-link {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .archive-page-link:hover { color: var(--blue); border-color: var(--blue); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+{% endblock %}
+
+{% block content %}
+<div class="wrapper">
+  <div class="page-header">
+    <div class="page-title">Research Archive</div>
+    <div class="page-sub">Weekly snapshots - click any date to browse that run</div>
+  </div>
+
+  {% if archive_dates %}
+  <div class="archive-grid">
+    <!-- Live / current -->
+    <a href="/top10.html" class="archive-card latest">
+      <span class="archive-tag tag-latest">Live</span>
+      <div class="archive-date">📊 Current Run</div>
+      <div class="archive-links">
+        <a href="/index.html" class="archive-page-link" onclick="event.stopPropagation()">Digest</a>
+        <a href="/top10.html" class="archive-page-link" onclick="event.stopPropagation()">Top 10</a>
+        <a href="/trade_review.html" class="archive-page-link" onclick="event.stopPropagation()">Trades</a>
+      </div>
+    </a>
+
+    <!-- Archived runs -->
+    {% for d in archive_dates %}
+    <a href="/archive/{{ d }}/top10.html" class="archive-card">
+      <span class="archive-tag tag-archive">Archive</span>
+      <div class="archive-date">📁 {{ d }}</div>
+      <div class="archive-links">
+        <a href="/archive/{{ d }}/index.html" class="archive-page-link" onclick="event.stopPropagation()">Digest</a>
+        <a href="/archive/{{ d }}/top10.html" class="archive-page-link" onclick="event.stopPropagation()">Top 10</a>
+        <a href="/archive/{{ d }}/trade_review.html" class="archive-page-link" onclick="event.stopPropagation()">Trades</a>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    No archive snapshots yet. Run the pipeline again after the first build to start accumulating history.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
