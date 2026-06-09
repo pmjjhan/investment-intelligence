@@ -127,7 +127,8 @@ import os
 _gemini_key = os.environ.get("GEMINI_API_KEY")
 if not _gemini_key:
     log.warning("GEMINI_API_KEY not set - memo generation will be skipped")
-_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+_GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+_GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{_GEMINI_MODEL}:generateContent"
 
 
 # ===========================================================================
