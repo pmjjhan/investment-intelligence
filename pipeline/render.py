@@ -19,7 +19,6 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-import anthropic
 import requests
 import yfinance as yf
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -122,13 +121,13 @@ for _dir in [DATA_DIR, DIST_DIR, DIST_STOCK, ARCHIVE_DIR]:
     _dir.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# Anthropic client
+# Gemini client (free tier)
 # ---------------------------------------------------------------------------
 import os
-_api_key = os.environ.get("ANTHROPIC_API_KEY")
-if not _api_key:
-    log.warning("ANTHROPIC_API_KEY not set - memo generation will be skipped")
-client = anthropic.Anthropic(api_key=_api_key) if _api_key else None
+_gemini_key = os.environ.get("GEMINI_API_KEY")
+if not _gemini_key:
+    log.warning("GEMINI_API_KEY not set - memo generation will be skipped")
+_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 
 # ===========================================================================
@@ -336,24 +335,20 @@ def process_historical_ranks(current_data: list[dict]) -> tuple[list[dict], list
 
 def generate_investment_memo(stock: dict) -> str:
     """
-    Calls Claude to generate a structured HTML investment memo for one stock.
+    Calls Gemini Flash (free tier) to generate a structured HTML investment memo.
     Applies the Rational Investing framework: catalyst, bear case, sizing view.
     Returns raw HTML string (3 blocks).
     """
-    if client is None:
-        return "<p>Memo unavailable - ANTHROPIC_API_KEY not configured.</p>"
+    if not _gemini_key:
+        return "<p>Memo unavailable - GEMINI_API_KEY not configured.</p>"
 
-    system_prompt = """
-You are an institutional investment analyst applying the Rational Investing framework.
-Evaluate stocks on: Revenue Growth, EBITDA Growth, Free Cash Flow, Debt levels, and Valuation vs. intrinsic value.
-
-Output exactly three HTML blocks with no markdown wrappers or filler text:
-1. <p> tag: Core structural catalyst (why this stock, why now)
-2. <ul> tag: 3 specific bear case risks with <li> items
-3. <p> tag: Sizing recommendation - one of: Strong Buy / Add / Hold / Watch / Avoid, with a one-sentence rationale
-"""
-
-    user_content = (
+    prompt = (
+        "You are an institutional investment analyst applying the Rational Investing framework. "
+        "Evaluate stocks on: Revenue Growth, EBITDA Growth, Free Cash Flow, Debt levels, and Valuation vs. intrinsic value.\n\n"
+        "Output exactly three HTML blocks with no markdown wrappers or filler text:\n"
+        "1. <p> tag: Core structural catalyst (why this stock, why now)\n"
+        "2. <ul> tag: 3 specific bear case risks with <li> items\n"
+        "3. <p> tag: Sizing recommendation - one of: Strong Buy / Add / Hold / Watch / Avoid, with a one-sentence rationale\n\n"
         f"Analyze {stock['name']} ({stock['ticker']}) using Rational Investing framework.\n"
         f"Metrics: Conviction Score {stock['conviction_score']}/100, "
         f"FCF Yield {stock['fcf_yield']}%, "
@@ -365,13 +360,15 @@ Output exactly three HTML blocks with no markdown wrappers or filler text:
     )
 
     try:
-        response = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=800,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_content}],
+        resp = requests.post(
+            _GEMINI_URL,
+            params={"key": _gemini_key},
+            json={"contents": [{"parts": [{"text": prompt}]}],
+                  "generationConfig": {"maxOutputTokens": 800, "temperature": 0.3}},
+            timeout=30,
         )
-        return response.content[0].text
+        resp.raise_for_status()
+        return resp.json()["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as exc:
         log.error("Memo generation failed for %s: %s", stock["ticker"], exc)
         return f"<p>Memo generation error: {exc}</p>"
