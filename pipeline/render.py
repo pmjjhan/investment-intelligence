@@ -623,6 +623,109 @@ def _render_page(env: Environment, template: str, output: Path, context: dict) -
         return False
 
 
+def build_checklist(stock: dict) -> dict:
+    """
+    Builds the Rational Investing 5-point checklist for a stock.
+    Each item: {"label": str, "status": "pass"|"warn"|"fail", "note": str}
+    """
+    pe       = _safe_float(stock.get("pe_ratio"), 50)
+    peg      = _safe_float(stock.get("peg_ratio"), 2.0)
+    op_mg    = _safe_float(stock.get("operating_margin"), 0)
+    fcf_y    = _safe_float(stock.get("fcf_yield"), 0)
+    fcf_adj  = _safe_float(stock.get("fcf_yield_sbc_adj"), 0)
+    sbc_pct  = _safe_float(stock.get("sbc_pct_of_ocf"), 0)
+
+    def _status(condition_pass, condition_warn):
+        if condition_pass: return "pass"
+        if condition_warn: return "warn"
+        return "fail"
+
+    return {
+        "revenue_growth": {
+            "label": "Topline Revenue Growth",
+            "status": _status(peg <= 1.5, peg <= 2.5),
+            "note": f"PEG {peg:.2f} — {'strong growth implied' if peg <= 1.5 else 'moderate growth' if peg <= 2.5 else 'weak/no growth signal'}",
+        },
+        "ebitda_growth": {
+            "label": "EBITDA Growth",
+            "status": _status(op_mg >= 20, op_mg >= 10),
+            "note": f"Operating margin {op_mg:.1f}% — {'expanding, healthy' if op_mg >= 20 else 'moderate' if op_mg >= 10 else 'thin or negative'}",
+        },
+        "fcf": {
+            "label": "Strong Free Cash Flow",
+            "status": _status(fcf_adj >= 3, fcf_adj >= 1),
+            "note": f"FCF yield after SBC {fcf_adj:.2f}% — {'strong cash generation' if fcf_adj >= 3 else 'adequate' if fcf_adj >= 1 else 'weak; SBC drag significant' if sbc_pct > 15 else 'low yield'}",
+        },
+        "low_debt": {
+            "label": "Low Debt",
+            "status": _status(sbc_pct <= 10, sbc_pct <= 20),
+            "note": f"SBC {sbc_pct:.1f}% of OCF — {'clean, low dilution' if sbc_pct <= 10 else 'manageable' if sbc_pct <= 20 else 'high dilution risk'}",
+        },
+        "valuation": {
+            "label": "Well-Priced vs. Intrinsic Value",
+            "status": _status(pe <= 25, pe <= 40),
+            "note": f"P/E {pe:.1f}x — {'reasonably priced' if pe <= 25 else 'fair but not cheap' if pe <= 40 else 'expensive; limited margin of safety'}",
+        },
+    }
+
+
+def build_irr(stock: dict) -> dict | None:
+    """
+    Estimates 1-year IRR scenarios (bear/base/bull) from current price and DCF.
+    Returns dict with bear, base, bull IRR % and exit prices, or None if insufficient data.
+    """
+    try:
+        price    = _safe_float(stock.get("price"))
+        peg      = _safe_float(stock.get("peg_ratio"), 2.0)
+        pe       = _safe_float(stock.get("pe_ratio"), 30)
+        fcf_adj  = _safe_float(stock.get("_fcf_after_sbc"))
+        shares   = _safe_float(stock.get("_shares"))
+        dcf      = stock.get("dcf_calc") or {}
+        iv       = _safe_float(dcf.get("intrinsic_value"))
+
+        if not price or price <= 0:
+            return None
+
+        # Base growth from PEG; bear = -3pp, bull = +5pp
+        base_g = min(max(1.0 / max(peg, 0.1) * 0.15, 0.05), 0.40)
+        bear_g = max(base_g - 0.05, 0.0)
+        bull_g = min(base_g + 0.08, 0.50)
+
+        # Exit multiple: use PE as proxy, normalise to FCF multiple
+        exit_mult = min(max(pe, 15), 50)
+
+        def _irr(growth):
+            if fcf_adj and shares and shares > 0:
+                fwd_fcf_per_share = (fcf_adj * (1 + growth)) / shares
+                exit_price = fwd_fcf_per_share * exit_mult
+            elif iv and iv > 0:
+                # fall back to DCF IV ± growth adjustment
+                exit_price = iv * (1 + growth)
+            else:
+                exit_price = price * (1 + growth)
+            return round((exit_price - price) / price * 100, 1), round(exit_price, 2)
+
+        bear_irr, bear_exit = _irr(bear_g)
+        base_irr, base_exit = _irr(base_g)
+        bull_irr, bull_exit = _irr(bull_g)
+
+        # Price needed for 15% IRR
+        target_exit = round(price * 1.15, 2)
+
+        return {
+            "bear":        bear_irr,
+            "base":        base_irr,
+            "bull":        bull_irr,
+            "bear_exit":   bear_exit,
+            "base_exit":   base_exit,
+            "bull_exit":   bull_exit,
+            "target_exit": target_exit,
+        }
+    except Exception as exc:
+        log.warning("IRR build failed for %s: %s", stock.get("ticker"), exc)
+        return None
+
+
 def render_all_pages(
     env: Environment,
     ranked_data: list[dict],
@@ -726,12 +829,14 @@ def run_pipeline() -> None:
         if "memo_html" not in stock:
             stock["memo_html"] = ""
 
-    # Step 4b: DCF, historical financials, sensitivity analysis
-    log.info("Running DCF, historical financials, and sensitivity for %d stocks...", len(ranked_data))
+    # Step 4b: DCF, historical financials, sensitivity, checklist, IRR for all stocks
+    log.info("Running DCF, checklist, IRR, and sensitivity for %d stocks...", len(ranked_data))
     for stock in ranked_data:
         stock["dcf_calc"]    = calculate_dcf(stock)
         stock["historical"]  = fetch_historical_financials(stock["ticker"], stock["dcf_calc"])
         stock["sensitivity"] = calculate_sensitivity(stock)
+        stock["checklist"]   = build_checklist(stock)
+        stock["irr"]         = build_irr(stock)
 
     # Step 5: Load supplementary data (theses from agent.py, trade reviews)
     theses       = _load_json(DATA_DIR / "theses.json", default={
